@@ -226,7 +226,7 @@ export const WhatsAppBillingModal: React.FC<WhatsAppBillingModalProps> = ({
                 onClick={() => setMessageType('recibo_pagamento')}
                 className={`p-2.5 text-left rounded-lg border text-xs transition-colors ${
                   messageType === 'recibo_pagamento'
-                    ? 'border-blue-600 bg-blue-50 text-blue-900 font-bold'
+                    ? 'border-emerald-600 bg-emerald-50 text-emerald-900 font-bold'
                     : 'border-slate-200 hover:bg-slate-50 text-slate-700'
                 }`}
               >
