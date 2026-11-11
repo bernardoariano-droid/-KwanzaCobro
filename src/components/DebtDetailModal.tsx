@@ -77,7 +77,7 @@ export const DebtDetailModal: React.FC<DebtDetailModalProps> = ({
     <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl max-w-3xl w-full border border-slate-200 shadow-2xl overflow-hidden my-8">
         {/* Top Header */}
-        <div className="px-6 py-4 bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-950 text-white flex items-center justify-between border-b border-blue-500/20">
+        <div className="px-6 py-4 bg-gradient-to-r from-emerald-900 via-emerald-800 to-green-950 text-white flex items-center justify-between border-b border-emerald-500/20">
           <div className="flex items-center gap-3">
             <div className="h-10 px-2 py-0.5 bg-white border border-slate-200 rounded-xl flex items-center justify-center shrink-0 shadow-xs">
               <img 
@@ -93,7 +93,7 @@ export const DebtDetailModal: React.FC<DebtDetailModalProps> = ({
                   {effStatus.label}
                 </span>
               </div>
-              <p className="text-xs text-blue-200">
+              <p className="text-xs text-emerald-200">
                 {company.name || 'KwanzaCobro'} · {t('debts.issue_date', 'Emitido em')} {formatDate(debt.issueDate)}
               </p>
             </div>
@@ -442,7 +442,7 @@ export const DebtDetailModal: React.FC<DebtDetailModalProps> = ({
                 <button
                   type="button"
                   onClick={() => onOpenPayment(debt)}
-                  className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 active:scale-95 rounded-lg shadow-sm transition-all cursor-pointer"
+                  className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 active:scale-95 rounded-lg shadow-sm transition-all cursor-pointer"
                 >
                   <CreditCard className="w-4 h-4" />
                   <span>{t('payments.title', 'Registar Pagamento')}</span>
