@@ -4,7 +4,7 @@ import { CompanySettings, Seller, Client, Debt, DebtItem, Payment } from '../typ
 // Função para sanitizar a URL fornecida pelo utilizador (remover /rest/v1/ se presente)
 export function sanitizeSupabaseUrl(rawUrl?: string): string {
   if (!rawUrl) return '';
-  return rawUrl.trim().replace(/\\/rest\\/v1\\/?$/, '').replace(/\\/+$/, '');
+  return rawUrl.trim().replace(/\/rest\/v1\/?$/, '').replace(/\/+$/, '');
 }
 
 const env = (import.meta as any).env || {};
