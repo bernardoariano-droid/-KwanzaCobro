@@ -672,20 +672,31 @@ export default function App() {
     }
   }, [currentUser, activeTab]);
 
-  const handleAddSeller = (newSellerData: Omit<Seller, 'id'>) => {
-    const newSeller: Seller = {
-      ...newSellerData,
-      id: `sel-${Date.now()}`,
-    };
-    setSellers(prev => [...prev, newSeller]);
-    saveSellerToSupabase(newSeller).then(res => {
-      if (res.success) {
-        setIsSupabaseSynced(true);
-        setLastSyncTime(new Date().toLocaleTimeString('pt-AO'));
-      }
-    }).catch(err => {
-      console.warn('Erro ao salvar vendedor no Supabase:', err);
+  const handleAddSeller = async (newSellerData: Omit<Seller, 'id'>): Promise<void> => {
+    const { data: sessionData } = await supabase.auth.getSession();
+    if (!sessionData.session) throw new Error('A sessão expirou. Inicie sessão novamente.');
+    const response = await fetch('/api/admin/users', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${sessionData.session.access_token}`,
+      },
+      body: JSON.stringify({
+        name: newSellerData.name,
+        email: newSellerData.email,
+        password: newSellerData.password,
+        phone: newSellerData.phone,
+        branch: newSellerData.branch,
+        role: newSellerData.role,
+      }),
     });
+    const result = await response.json();
+    if (!response.ok || !result.success || !result.seller) {
+      throw new Error(result.error || 'Falha ao criar conta de acesso.');
+    }
+    setSellers(prev => [result.seller, ...prev]);
+    setIsSupabaseSynced(true);
+    setLastSyncTime(new Date().toLocaleTimeString('pt-AO'));
   };
 
   const handleDeleteSeller = (sellerId: string) => {
