@@ -203,7 +203,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ sellers, company, onLoginS
             </button>
           </form>
 
-          {/* Acessos rápidos disponíveis apenas em desenvolvimento */}</div>
+          
 
         {/* Footer */}
         <div className="mt-4 text-center text-xs text-emerald-200/80">
