@@ -16,20 +16,25 @@ export const SUPABASE_PROJECT_REF = (() => {
   }
 })();
 
-// Funções privilegiadas exigem service_role no servidor. Nunca usar anon/publishable como fallback.
-const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim() || '';
+// Estas rotas ainda não validam uma sessão de utilizador no servidor.
+// Por segurança, usam apenas a chave pública (anon/publishable), nunca service_role.
+// As políticas RLS da base de dados devem restringir o acesso até existir autorização
+// de servidor consistente em todas as rotas.
+export const SUPABASE_KEY = (
+  process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || ''
+).trim();
 
 let _supabaseClient: SupabaseClient | null = null;
 
 export function getBackendSupabase(): SupabaseClient {
-  if (!SUPABASE_URL || !SERVICE_ROLE_KEY) {
+  if (!SUPABASE_URL || !SUPABASE_KEY) {
     throw new Error(
-      'Configuração do Supabase incompleta no servidor. Defina SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY nas variáveis de ambiente da Vercel.'
+      'Configuração do Supabase incompleta. Defina SUPABASE_URL e SUPABASE_ANON_KEY nas variáveis de ambiente da Vercel.'
     );
   }
 
   if (!_supabaseClient) {
-    _supabaseClient = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
+    _supabaseClient = createClient(SUPABASE_URL, SUPABASE_KEY, {
       auth: {
         persistSession: false,
         autoRefreshToken: false,
