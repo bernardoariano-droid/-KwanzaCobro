@@ -250,9 +250,9 @@ export const DebtsListView: React.FC<DebtsListViewProps> = ({
 
           <button
             onClick={onOpenNewDebt}
-            className="inline-flex items-center gap-1.5 px-3.5 sm:px-4 py-2 sm:py-2.5 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 active:scale-95 rounded-xl shadow-xs transition-all whitespace-nowrap shrink-0 cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-3.5 sm:px-4 py-2 sm:py-2.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 active:scale-95 rounded-xl shadow-xs transition-all whitespace-nowrap shrink-0 cursor-pointer"
           >
-            <Plus className="w-4 h-4 text-blue-200" />
+            <Plus className="w-4 h-4 text-emerald-200" />
             <span>{t('dashboard.new_debt_btn', 'Registar Compra a Crédito')}</span>
           </button>
         </div>
@@ -309,8 +309,8 @@ export const DebtsListView: React.FC<DebtsListViewProps> = ({
             onClick={() => setStatusFilter('aberta')}
             className={`px-2.5 sm:px-3 py-1.5 text-xs font-medium rounded-lg transition-colors cursor-pointer ${
               statusFilter === 'aberta'
-                ? 'bg-blue-700 text-white shadow-xs'
-                : 'text-blue-700 hover:bg-blue-50'
+                ? 'bg-emerald-700 text-white shadow-xs'
+                : 'text-emerald-700 hover:bg-emerald-50'
             }`}
           >
             {t('debts.filter_open', 'Em Aberto')}
@@ -338,7 +338,7 @@ export const DebtsListView: React.FC<DebtsListViewProps> = ({
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
               placeholder={t('debts.search_placeholder', 'Pesquisar fatura, cliente, NIF...')}
-              className="w-full pl-9 pr-3 py-2 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-slate-50/50"
+              className="w-full pl-9 pr-3 py-2 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 bg-slate-50/50"
             />
             {searchQuery && (
               <button
@@ -356,7 +356,7 @@ export const DebtsListView: React.FC<DebtsListViewProps> = ({
               <select
                 value={selectedSeller}
                 onChange={e => setSelectedSeller(e.target.value)}
-                className="w-full py-2 px-3 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white"
+                className="w-full py-2 px-3 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-500 bg-white"
               >
                 <option value="all">{t('common.all', 'Todos os Vendedores')}</option>
                 {sellers.map(s => (
@@ -376,7 +376,7 @@ export const DebtsListView: React.FC<DebtsListViewProps> = ({
                 type="date"
                 value={dueDateStart}
                 onChange={e => setDueDateStart(e.target.value)}
-                className="w-full py-1.5 px-2 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white"
+                className="w-full py-1.5 px-2 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-500 bg-white"
               />
             </div>
           </div>
@@ -389,7 +389,7 @@ export const DebtsListView: React.FC<DebtsListViewProps> = ({
                 type="date"
                 value={dueDateEnd}
                 onChange={e => setDueDateEnd(e.target.value)}
-                className="w-full py-1.5 px-2 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white"
+                className="w-full py-1.5 px-2 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-500 bg-white"
               />
             </div>
           </div>
@@ -413,7 +413,7 @@ export const DebtsListView: React.FC<DebtsListViewProps> = ({
           {hasActiveFilters && (
             <button
               onClick={clearFilters}
-              className="text-xs text-blue-700 hover:text-blue-800 font-medium underline cursor-pointer"
+              className="text-xs text-emerald-700 hover:text-emerald-800 font-medium underline cursor-pointer"
             >
               {t('common.clean_filters', 'Limpar Filtros')}
             </button>
@@ -440,7 +440,7 @@ export const DebtsListView: React.FC<DebtsListViewProps> = ({
             )}
             <button
               onClick={onOpenNewDebt}
-              className="px-4 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors cursor-pointer"
+              className="px-4 py-2 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-colors cursor-pointer"
             >
               + {t('dashboard.new_debt_btn', 'Registar Compra a Crédito')}
             </button>
@@ -479,7 +479,7 @@ export const DebtsListView: React.FC<DebtsListViewProps> = ({
                     <div>
                       <button
                         onClick={() => onViewDebtDetail(debt)}
-                        className="font-bold text-xs font-mono text-blue-900 hover:underline flex items-center gap-1.5"
+                        className="font-bold text-xs font-mono text-emerald-900 hover:underline flex items-center gap-1.5"
                       >
                         <span>{debt.invoiceNumber}</span>
                         {debt.confirmationStatus === 'confirmada' && (
@@ -508,9 +508,9 @@ export const DebtsListView: React.FC<DebtsListViewProps> = ({
                         <div className="text-xs text-slate-600 font-mono mt-0.5 flex items-center gap-2">
                           <a 
                             href={`tel:${phone}`}
-                            className="text-blue-700 hover:underline flex items-center gap-1 font-semibold"
+                            className="text-emerald-700 hover:underline flex items-center gap-1 font-semibold"
                           >
-                            <Phone className="w-3 h-3 text-blue-600" />
+                            <Phone className="w-3 h-3 text-emerald-600" />
                             <span>{phone}</span>
                           </a>
                           {client?.province && (
@@ -550,9 +550,9 @@ export const DebtsListView: React.FC<DebtsListViewProps> = ({
                         {formatKwanza(debt.totalAmount)}
                       </div>
                     </div>
-                    <div className="bg-blue-50/50 p-2 rounded-lg border border-blue-100">
-                      <div className="text-[10px] text-blue-800 uppercase tracking-wider font-semibold">{t('debts.balance', 'Saldo Devedor')}</div>
-                      <div className="font-mono font-black text-blue-900 mt-0.5" data-tabular>
+                    <div className="bg-emerald-50/50 p-2 rounded-lg border border-emerald-100">
+                      <div className="text-[10px] text-emerald-800 uppercase tracking-wider font-semibold">{t('debts.balance', 'Saldo Devedor')}</div>
+                      <div className="font-mono font-black text-emerald-900 mt-0.5" data-tabular>
                         {formatKwanza(remaining)}
                       </div>
                     </div>
@@ -561,7 +561,7 @@ export const DebtsListView: React.FC<DebtsListViewProps> = ({
                   {debt.totalAmount > 0 && (
                     <div className="mt-2 w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
                       <div 
-                        className={`h-full rounded-full ${remaining <= 0 ? 'bg-emerald-600' : 'bg-blue-600'}`}
+                        className={`h-full rounded-full ${remaining <= 0 ? 'bg-emerald-600' : 'bg-emerald-600'}`}
                         style={{ width: `${pct}%` }}
                       />
                     </div>
@@ -603,9 +603,9 @@ export const DebtsListView: React.FC<DebtsListViewProps> = ({
                       {onDownloadPDF && (
                         <button
                           onClick={() => onDownloadPDF(debt)}
-                          className="py-2 px-2 text-blue-800 bg-blue-50 hover:bg-blue-100 active:scale-98 rounded-lg font-medium transition-colors flex items-center justify-center gap-1 min-h-[38px] cursor-pointer"
+                          className="py-2 px-2 text-emerald-800 bg-emerald-50 hover:bg-emerald-100 active:scale-98 rounded-lg font-medium transition-colors flex items-center justify-center gap-1 min-h-[38px] cursor-pointer"
                         >
-                          <FileDown className="w-3.5 h-3.5 text-blue-700" />
+                          <FileDown className="w-3.5 h-3.5 text-emerald-700" />
                           <span>PDF</span>
                         </button>
                       )}
@@ -646,7 +646,7 @@ export const DebtsListView: React.FC<DebtsListViewProps> = ({
                             setSortOrder('asc');
                           }
                         }}
-                        className="inline-flex items-center gap-1 font-bold text-slate-900 hover:text-blue-700 cursor-pointer"
+                        className="inline-flex items-center gap-1 font-bold text-slate-900 hover:text-emerald-700 cursor-pointer"
                       >
                         <span>{t('debts.due_date', 'Data Limite Pagamento')}</span>
                         <span className="text-[10px]">{sortBy === 'dueDate' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}</span>
@@ -678,7 +678,7 @@ export const DebtsListView: React.FC<DebtsListViewProps> = ({
                         <td className="py-3.5 px-4 whitespace-nowrap">
                           <button
                             onClick={() => onViewDebtDetail(debt)}
-                            className="font-bold text-xs text-slate-900 font-mono hover:text-blue-700 transition-colors text-left cursor-pointer"
+                            className="font-bold text-xs text-slate-900 font-mono hover:text-emerald-700 transition-colors text-left cursor-pointer"
                           >
                             {debt.invoiceNumber}
                           </button>
@@ -754,7 +754,7 @@ export const DebtsListView: React.FC<DebtsListViewProps> = ({
                           {debt.totalAmount > 0 && (
                             <div className="mt-1 w-24 ml-auto bg-slate-100 h-1.5 rounded-full overflow-hidden">
                               <div 
-                                className={`h-full rounded-full ${remaining <= 0 ? 'bg-emerald-600' : 'bg-blue-600'}`}
+                                className={`h-full rounded-full ${remaining <= 0 ? 'bg-emerald-600' : 'bg-emerald-600'}`}
                                 style={{ width: `${pct}%` }}
                               />
                             </div>
@@ -809,7 +809,7 @@ export const DebtsListView: React.FC<DebtsListViewProps> = ({
                                 title={t('common.download_pdf', 'Descarregar PDF')}
                                 className="p-1.5 text-slate-700 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-md transition-colors cursor-pointer"
                               >
-                                <FileDown className="w-3.5 h-3.5 text-blue-700" />
+                                <FileDown className="w-3.5 h-3.5 text-emerald-700" />
                               </button>
                             )}
 
