@@ -133,6 +133,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       attemptsLeft: 5,
       providerConfigured,
       smsSent,
+      // Este código só é devolvido a uma sessão de funcionário autenticada,
+      // para permitir a modalidade de envio manual por WhatsApp.
+      verificationCode: rawCode,
+      sandboxTestCode: rawCode,
       statusMessage: providerConfigured 
         ? (smsSent ? 'SMS enviado com sucesso para o cliente.' : 'Falha no envio da operadora SMS.')
         : 'Serviço de SMS não configurado (Envio manual ou direto disponível)',
