@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import { Debt, Client, Seller, DebtItem, PaymentMethod, ConfirmationMode, AuditEntry, CompanySettings, AuthUser } from '../types/debt';
 import { formatKwanza, getRemainingBalance } from '../utils/formatters';
+import { supabase } from '../lib/supabase';
 
 interface NewDebtModalProps {
   isOpen: boolean;
@@ -81,6 +82,7 @@ export const NewDebtModal: React.FC<NewDebtModalProps> = ({
 
   // SMS Verification State
   const [sessionId, setSessionId] = useState<string | null>(null);
+  const [sessionToken, setSessionToken] = useState<string | null>(null);
   const [maskedPhone, setMaskedPhone] = useState<string>('');
   const [smsStatus, setSmsStatus] = useState<string>('');
   const [smsMessage, setSmsMessage] = useState<string>('');
@@ -134,6 +136,7 @@ export const NewDebtModal: React.FC<NewDebtModalProps> = ({
         setStoreName(company.name);
       }
       setSessionId(null);
+      setSessionToken(null);
       setSandboxCode(null);
       setGeneratedCode('');
       setWhatsappSentStatus(false);
@@ -274,9 +277,11 @@ export const NewDebtModal: React.FC<NewDebtModalProps> = ({
     }));
 
     try {
+      const { data: authSession } = await supabase.auth.getSession();
+      if (!authSession.session) throw new Error('Sessão expirada. Inicie sessão novamente.');
       const resp = await fetch('/api/sms/send-verification', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authSession.session.access_token}` },
         body: JSON.stringify({
           customerName: customerName.trim(),
           customerPhone: customerPhone.trim(),
@@ -298,6 +303,7 @@ export const NewDebtModal: React.FC<NewDebtModalProps> = ({
       setGeneratedCode(returnedCode);
       setSandboxCode(returnedCode);
       setSessionId(data.sessionId);
+      setSessionToken(data.sessionToken || null);
       setMaskedPhone(data.maskedPhone || getLocalMaskedPhone(customerPhone));
       setSmsStatus(data.smsStatus);
       setSmsMessage(data.message);
@@ -340,9 +346,11 @@ export const NewDebtModal: React.FC<NewDebtModalProps> = ({
           total: (Number(item.quantity) || 1) * (Number(item.unitPrice) || 0),
         }));
 
+        const { data: authSession } = await supabase.auth.getSession();
+        if (!authSession.session) throw new Error('Sessão expirada. Inicie sessão novamente.');
         const resp = await fetch('/api/sms/send-verification', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authSession.session.access_token}` },
           body: JSON.stringify({
             customerName: customerName.trim(),
             customerPhone: customerPhone.trim(),
@@ -356,6 +364,7 @@ export const NewDebtModal: React.FC<NewDebtModalProps> = ({
         const data = await resp.json();
         codeToUse = String(data.verificationCode || data.sandboxTestCode || Math.floor(100000 + Math.random() * 900000));
         setSessionId(data.sessionId);
+        setSessionToken(data.sessionToken || null);
         setMaskedPhone(data.maskedPhone || getLocalMaskedPhone(customerPhone));
         setGeneratedCode(codeToUse);
         setSandboxCode(codeToUse);
@@ -516,6 +525,7 @@ ${itemsSummary}
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           sessionId,
+          sessionToken,
           code: fullEnteredCode,
           confirmationMode,
         }),
