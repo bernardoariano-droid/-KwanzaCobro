@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0b4d4b" />
+      <stop offset="50%" stop-color="#073b3a" />
+      <stop offset="100%" stop-color="#042f2e" />
+    </linearGradient>
+    <linearGradient id="gold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f59e0b" />
+      <stop offset="100%" stop-color="#d97706" />
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="128" fill="url(#grad)" />
+  <circle cx="256" cy="256" r="190" fill="#ffffff" />
+  <circle cx="256" cy="256" r="182" fill="none" stroke="url(#gold)" stroke-width="6" />
+  
+  <!-- Scales of Justice & Brain Emblem -->
+  <g transform="translate(120, 110) scale(0.55)">
+    <!-- Central Pillar -->
+    <rect x="235" y="60" width="26" height="340" rx="6" fill="#0b4d4b" />
+    <circle cx="248" cy="45" r="28" fill="#d97706" />
+    <rect x="180" y="390" width="136" height="24" rx="8" fill="#0b4d4b" />
+    
+    <!-- Balance Bar -->
+    <path d="M 80 120 Q 248 90 416 120" stroke="#0b4d4b" stroke-width="16" fill="none" stroke-linecap="round" />
+    
+    <!-- Left Scale -->
+    <line x1="80" y1="120" x2="40" y2="230" stroke="#0d9488" stroke-width="6" />
+    <line x1="80" y1="120" x2="120" y2="230" stroke="#0d9488" stroke-width="6" />
+    <path d="M 30 230 Q 80 280 130 230 Z" fill="#0b4d4b" />
+    
+    <!-- Right Scale -->
+    <line x1="416" y1="120" x2="376" y2="230" stroke="#0d9488" stroke-width="6" />
+    <line x1="416" y1="120" x2="456" y2="230" stroke="#0d9488" stroke-width="6" />
+    <path d="M 366 230 Q 416 280 466 230 Z" fill="#0b4d4b" />
+  </g>
+  <text x="256" y="375" font-family="system-ui, -apple-system, sans-serif" font-size="34" font-weight="900" fill="#0b4d4b" text-anchor="middle" letter-spacing="4">NEUROJUS</text>
+  <text x="256" y="405" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="700" fill="#d97706" text-anchor="middle" letter-spacing="2">GESTÃO DE CRÉDITO</text>
+</svg>

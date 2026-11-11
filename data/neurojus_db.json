@@ -1,0 +1,157 @@
+{
+  "debts": [
+    {
+      "id": "debt-1794340271955",
+      "invoiceNumber": "FT 2026/4330",
+      "clientId": "cli-1794340160192",
+      "sellerId": "sel-1794339957730",
+      "customerName": "Luzia Kilumba",
+      "customerPhone": "+244 900000000",
+      "issueDate": "2026-11-10",
+      "dueDate": "2026-11-25",
+      "totalAmount": 50000,
+      "status": "aberta",
+      "paymentMethodAgreed": "multicaixa_express",
+      "terms": "",
+      "items": [
+        {
+          "id": "item-1794340271955-1",
+          "description": "Arroz 25 kg",
+          "quantity": 2,
+          "unitPrice": 15000,
+          "total": 30000
+        },
+        {
+          "id": "item-1794340271955-2",
+          "description": "Óleo alimentar",
+          "quantity": 2,
+          "unitPrice": 5000,
+          "total": 10000
+        },
+        {
+          "id": "item-1794340271955-3",
+          "description": "Açúcar 5 kg",
+          "quantity": 2,
+          "unitPrice": 5000,
+          "total": 10000
+        }
+      ],
+      "payments": [],
+      "confirmationStatus": "sem_sms",
+      "confirmationMode": "pessoal",
+      "reminder5DaysSent": false,
+      "createdAt": "2026-11-10",
+      "updatedAt": "2026-11-10"
+    },
+    {
+      "id": "debt-1794339740891",
+      "invoiceNumber": "FT 2026/5515",
+      "clientId": "cli-quick-1794339740891",
+      "sellerId": "1",
+      "customerName": "Luzia Kindemba",
+      "customerPhone": "+244 932589955",
+      "issueDate": "2026-11-10",
+      "dueDate": "2026-11-25",
+      "totalAmount": 40000,
+      "status": "aberta",
+      "paymentMethodAgreed": "multicaixa_express",
+      "terms": "",
+      "items": [
+        {
+          "id": "item-1794339740891-1",
+          "description": "Arroz 25 kg",
+          "quantity": 2,
+          "unitPrice": 15000,
+          "total": 30000
+        },
+        {
+          "id": "item-1794339740891-2",
+          "description": "Óleo alimentar",
+          "quantity": 2,
+          "unitPrice": 5000,
+          "total": 10000
+        }
+      ],
+      "payments": [],
+      "confirmationStatus": "sem_sms",
+      "confirmationMode": "pessoal",
+      "reminder5DaysSent": false,
+      "createdAt": "2026-11-10",
+      "updatedAt": "2026-11-10"
+    }
+  ],
+  "clients": [
+    {
+      "id": "cli-quick-1794339740891",
+      "name": "Luzia Kindemba",
+      "nif": "",
+      "phone": "+244 932589955",
+      "email": "",
+      "province": "Luanda",
+      "municipality": "Luanda",
+      "address": "",
+      "clientType": "particular",
+      "creditLimit": 500000,
+      "notes": "",
+      "createdBySellerId": "1",
+      "createdAt": "2026-11-10"
+    },
+    {
+      "id": "cli-1794340160192",
+      "name": "Luzia Kilumba",
+      "nif": "00000",
+      "phone": "+244 900000000",
+      "email": "bamidia@gmail.com",
+      "province": "Cuanza Sul",
+      "municipality": "Bairro Campo",
+      "address": "WAKU-KUNGO",
+      "clientType": "particular",
+      "creditLimit": 5000000,
+      "notes": "",
+      "createdBySellerId": "sel-1794339957730",
+      "createdAt": "2026-11-10"
+    }
+  ],
+  "sellers": [
+    {
+      "id": "sel-1794339957730",
+      "name": "Bernardo Adriano",
+      "phone": "+244 932589955",
+      "branch": "Armazém Central Viana",
+      "email": "bernardoariano@gmail.com",
+      "password": "111222",
+      "role": "vendedor",
+      "createdAt": "2026-11-10"
+    },
+    {
+      "id": "1",
+      "name": "Anónio Ventura",
+      "phone": "923000000",
+      "branch": "CAMPO",
+      "email": "antonio@gmail.com",
+      "password": "111222",
+      "role": "vendedor",
+      "createdAt": "2026-11-09"
+    }
+  ],
+  "company": {
+    "name": "O Nome da Sua Empresa, Lda",
+    "nif": "5419082341",
+    "phone": "+244 923 000 000",
+    "email": "contacto@suaempresa.ao",
+    "address": "Avenida Principal, Luanda",
+    "city": "Luanda, Angola",
+    "bankName": "Banco BAI (Banco Angolano de Investimentos)",
+    "iban": "AO06 0040 0000 1234 5678 1012 3",
+    "expressPhone": "923 000 000",
+    "currency": "Kz",
+    "logoUrl": "/assets/aistudio/IMG-20261010-WA0062_2b38905c.jpg",
+    "penaltyPerDayRate": 0.1,
+    "daysBeforeDueAlert": 5,
+    "autoAlertNotifications": true,
+    "senha": "111222",
+    "password": "111222"
+  },
+  "lastSavedAt": "2026-11-10T20:09:31.705Z",
+  "updatedVia": "localhost-api"
+}

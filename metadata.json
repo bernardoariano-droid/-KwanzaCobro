@@ -1,0 +1,6 @@
+{
+  "name": "NEUROJUS - Controlo de Dívidas & Gestão de Crédito Comercial",
+  "description": "Sistema oficial NEUROJUS no contexto angolano para registo de compras a crédito, discriminação de produtos, confirmação por SMS e emissão de comprovativos digitais com QR Code.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
