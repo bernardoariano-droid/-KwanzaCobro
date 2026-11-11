@@ -336,8 +336,8 @@ export async function pullFromSupabase(): Promise<{
   try {
     // 1. Consulta em paralelo às tabelas relacionais do Supabase
     const [compRes, sellersRes, clientsRes, debtsRes, itemsRes, paysRes] = await Promise.all([
-      supabase.from('company_settings').select('*').limit(1),
-      supabase.from('sellers').select('*').order('created_at', { ascending: false }),
+      supabase.from('company_settings').select('id,name,nif,phone,email,address,city,bank_name,iban,express_phone,currency,logo_url,penalty_per_day_rate,days_before_due_alert,auto_alert_notifications,updated_at').limit(1),
+      supabase.from('sellers').select('id,name,phone,branch,email,role,created_at').order('created_at', { ascending: false }),
       supabase.from('clients').select('*').order('created_at', { ascending: false }),
       supabase.from('debts').select('*').order('created_at', { ascending: false }),
       supabase.from('debt_items').select('*'),
