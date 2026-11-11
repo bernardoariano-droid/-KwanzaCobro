@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import { Debt, Client, Seller, CompanySettings, Payment, AuthUser, DebtStatus, AuditEntry } from './types/debt';
 import { 
   initialDebts, 
@@ -193,7 +193,7 @@ export default function App() {
 
   // Impedir que dados em cache de uma sessão anterior sejam mostrados a outro utilizador.
   const previousAuthId = useRef<string | null>(null);
-  useEffect(() => {
+  useLayoutEffect(() => {
     const nextAuthId = currentUser?.id || null;
     if (previousAuthId.current !== nextAuthId) {
       previousAuthId.current = nextAuthId;
