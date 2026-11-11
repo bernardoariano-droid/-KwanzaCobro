@@ -773,11 +773,7 @@ export default function App() {
 
   if (!currentUser) {
     return (
-      <LoginPage
-        sellers={sellers}
-        company={company}
-        onLoginSuccess={handleLoginSuccess}
-      />
+      <LoginPage onLoginSuccess={handleLoginSuccess} />
     );
   }
 
