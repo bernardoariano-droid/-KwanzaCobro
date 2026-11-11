@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { getBackendSupabase } from '../_supabase.js';
+import { requireIdentity } from '../_auth.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'GET') {
@@ -7,7 +7,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const supabase = getBackendSupabase();
+    const auth = await requireIdentity(req, res);
+    if (!auth) return;
+    const supabase = auth.client;
 
     const [compRes, selRes, cliRes, debtRes, itemsRes, paysRes] = await Promise.all([
       supabase.from('company_settings').select('*').limit(1),
@@ -25,7 +27,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       phone: s.phone,
       branch: s.branch,
       email: s.email,
-      password: s.password || '',
       role: s.role || 'vendedor',
       createdAt: s.created_at ? String(s.created_at).slice(0, 10) : undefined,
     }));
@@ -110,8 +111,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         penaltyPerDayRate: compRow.penalty_per_day_rate ?? 0.1,
         daysBeforeDueAlert: compRow.days_before_due_alert ?? 5,
         autoAlertNotifications: compRow.auto_alert_notifications ?? true,
-        senha: compRow.senha || compRow.password || '',
-        password: compRow.password || compRow.senha || '',
       };
     }
 
