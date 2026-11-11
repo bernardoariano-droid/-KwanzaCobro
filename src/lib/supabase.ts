@@ -270,8 +270,9 @@ export async function testSupabaseConnection(): Promise<SupabaseHealthResult> {
     };
   }
   try {
-    const res = await fetch('/api/supabase/status');
-    if (res.ok) {
+    const { data: sessionData } = await supabase.auth.getSession();
+    const res = sessionData.session ? await fetch('/api/supabase/status', { headers: { Authorization: `Bearer ${sessionData.session.access_token}` } }) : null;
+    if (res?.ok) {
       const json = await res.json();
       return {
         connected: json.connected,
