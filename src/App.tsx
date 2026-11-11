@@ -310,10 +310,10 @@ export default function App() {
   const handleManualSyncNow = async () => {
     setIsManualSyncing(true);
     try {
-      // 1. Sincronizar diretamente com o Supabase
-      const syncRes = await syncToSupabase({ debts, clients, sellers, company });
-      if (syncRes.success) {
-        setIsSupabaseSynced(true);
+      // A sincronização integral/snapshot é exclusiva do administrador.
+      if (currentUser?.role === 'admin') {
+        const syncRes = await syncToSupabase({ debts, clients, sellers, company });
+        if (syncRes.success) setIsSupabaseSynced(true);
       }
 
       // 2. Também notificar endpoint serverless
