@@ -25,7 +25,7 @@ interface SellersViewProps {
   sellers: Seller[];
   debts: Debt[];
   currentUser?: AuthUser | null;
-  onAddSeller: (seller: Omit<Seller, 'id'>) => void;
+  onAddSeller: (seller: Omit<Seller, 'id'>) => Promise<void>;
   onDeleteSeller?: (sellerId: string) => void;
   onFilterDebtsBySeller: (sellerId: string) => void;
 }
@@ -50,28 +50,33 @@ export const SellersView: React.FC<SellersViewProps> = ({
 
   const isAdmin = currentUser?.role === 'admin';
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return;
 
     const formattedEmail = email.trim() || `${name.toLowerCase().replace(/\s+/g, '.')}@kwanzacobro.ao`;
 
-    onAddSeller({
+    try {
+      await onAddSeller({
       name: name.trim(),
       phone: phone.trim(),
       branch: branch.trim(),
       email: formattedEmail,
+      password: password.trim(),
       role,
       createdAt: new Date().toISOString().slice(0, 10),
-    });
-
-    setSuccessMessage(`${name.trim()} - Conta de acesso solicitada para ${formattedEmail}.`);
+      });
+      setSuccessMessage(`${name.trim()} - Conta criada para ${formattedEmail}.`);
     setTimeout(() => setSuccessMessage(null), 6000);
 
-    setName('');
-    setEmail('');
-    setPassword('');
-    setIsAdding(false);
+      setName('');
+      setEmail('');
+      setPassword('');
+      setIsAdding(false);
+    } catch (error: any) {
+      setSuccessMessage(null);
+      alert(error?.message || 'Não foi possível criar a conta do funcionário.');
+    }
   };
 
   return (
