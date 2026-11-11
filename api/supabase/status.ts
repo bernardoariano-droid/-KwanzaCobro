@@ -28,7 +28,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         supabase.from('debts').select('id', { count: 'exact', head: true }),
       ]);
 
-      tableExists = !compRes.error || !selRes.error || !cliRes.error || !debtRes.error;
+      tableExists = !compRes.error && !selRes.error && !cliRes.error && !debtRes.error;
       counts = {
         companies: compRes.count ?? 0,
         sellers: selRes.count ?? 0,
