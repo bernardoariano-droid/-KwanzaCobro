@@ -33,8 +33,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           penalty_per_day_rate: company.penaltyPerDayRate ?? 0.1,
           days_before_due_alert: company.daysBeforeDueAlert ?? 5,
           auto_alert_notifications: company.autoAlertNotifications ?? true,
-          ...(company.senha || company.password ? { senha: company.senha || company.password } : {}),
-          ...(company.password || company.senha ? { password: company.password || company.senha } : {}),
           updated_at: new Date().toISOString(),
         }, { onConflict: 'id' });
         anySuccess = true;
@@ -52,7 +50,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           phone: s.phone,
           branch: s.branch || 'Sede',
           email: s.email || null,
-          ...(s.password ? { password: s.password } : {}),
           role: s.role || 'vendedor',
           created_at: s.createdAt ? new Date(s.createdAt).toISOString() : new Date().toISOString(),
         }));
