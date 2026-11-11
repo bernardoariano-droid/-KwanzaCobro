@@ -2,8 +2,56 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @layer base {
+  :root {
+    color-scheme: light;
+    --neurojus-green-950: #063b2a;
+    --neurojus-green-800: #087443;
+    --neurojus-green-700: #0b8a50;
+    --neurojus-green-100: #d9f4e4;
+    --neurojus-green-50: #f1fbf5;
+  }
+
+  html {
+    background: #f6faf7;
+    scroll-behavior: smooth;
+  }
+
   body {
+    min-height: 100vh;
+    background: #f6faf7;
+    color: #17251d;
     font-family: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  button, input, select, textarea {
+    font: inherit;
+  }
+
+  button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
+    outline: 3px solid rgba(11, 138, 80, 0.28);
+    outline-offset: 2px;
+  }
+
+  ::selection {
+    background: #b9e8cb;
+    color: #063b2a;
+  }
+
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: #b7d9c3 transparent;
+  }
+
+  *::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  *::-webkit-scrollbar-thumb {
+    background: #b7d9c3;
+    border-radius: 999px;
   }
   
   body.rtl {
