@@ -6,7 +6,11 @@
   "cleanUrls": true,
   "rewrites": [
     {
-      "source": "/(.*)",
+      "source": "/api/sms/verify-receipt/:transactionId",
+      "destination": "/api/sms/verify-receipt?transactionId=:transactionId"
+    },
+    {
+      "source": "/((?!api/).*)",
       "destination": "/index.html"
     }
   ]

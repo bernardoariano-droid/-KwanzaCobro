@@ -615,3 +615,140 @@ ALTER TABLE public.company_settings ADD COLUMN IF NOT EXISTS senha TEXT DEFAULT 
 ALTER TABLE public.company_settings ADD COLUMN IF NOT EXISTS password TEXT DEFAULT 'admin';
 `;
 }
+
+/**
+ * Operações Atómicas Diretas com Supabase (Persistência Imediata em Produção)
+ */
+export async function saveClientToSupabase(client: Client): Promise<{ success: boolean; error?: string }> {
+  try {
+    const row = mapClientToSupabase(client);
+    const { error } = await supabase.from('clients').upsert(row, { onConflict: 'id' });
+    if (error) return { success: false, error: error.message };
+    return { success: true };
+  } catch (e: any) {
+    return { success: false, error: e.message };
+  }
+}
+
+export async function deleteClientFromSupabase(clientId: string): Promise<{ success: boolean; error?: string }> {
+  try {
+    const { error } = await supabase.from('clients').delete().eq('id', clientId);
+    if (error) return { success: false, error: error.message };
+    return { success: true };
+  } catch (e: any) {
+    return { success: false, error: e.message };
+  }
+}
+
+export async function saveSellerToSupabase(seller: Seller): Promise<{ success: boolean; error?: string }> {
+  try {
+    const row = mapSellerToSupabase(seller);
+    const { error } = await supabase.from('sellers').upsert(row, { onConflict: 'id' });
+    if (error) return { success: false, error: error.message };
+    return { success: true };
+  } catch (e: any) {
+    return { success: false, error: e.message };
+  }
+}
+
+export async function deleteSellerFromSupabase(sellerId: string): Promise<{ success: boolean; error?: string }> {
+  try {
+    const { error } = await supabase.from('sellers').delete().eq('id', sellerId);
+    if (error) return { success: false, error: error.message };
+    return { success: true };
+  } catch (e: any) {
+    return { success: false, error: e.message };
+  }
+}
+
+export async function saveDebtToSupabase(debt: Debt): Promise<{ success: boolean; error?: string }> {
+  try {
+    const { debtRow, itemsRows, paymentsRows } = mapDebtToSupabase(debt);
+    const { error: debtErr } = await supabase.from('debts').upsert(debtRow, { onConflict: 'id' });
+    if (debtErr) return { success: false, error: debtErr.message };
+
+    if (itemsRows.length > 0) {
+      await supabase.from('debt_items').upsert(itemsRows, { onConflict: 'id' });
+    }
+    if (paymentsRows.length > 0) {
+      await supabase.from('payments').upsert(paymentsRows, { onConflict: 'id' });
+    }
+    return { success: true };
+  } catch (e: any) {
+    return { success: false, error: e.message };
+  }
+}
+
+export async function savePaymentToSupabase(
+  debtId: string, 
+  payment: Payment, 
+  updatedDebt: Debt
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    // 1. Gravar pagamento
+    const paymentRow = {
+      id: payment.id || `pay-${Date.now()}`,
+      debt_id: String(debtId),
+      amount: payment.amount,
+      date: payment.date || new Date().toISOString().slice(0, 10),
+      payment_method: payment.paymentMethod,
+      receipt_ref: payment.receiptRef,
+      notes: payment.notes || null,
+      received_by: payment.receivedBy || 'Operador',
+      created_at: payment.createdAt ? new Date(payment.createdAt).toISOString() : new Date().toISOString(),
+    };
+    const { error: payErr } = await supabase.from('payments').upsert(paymentRow, { onConflict: 'id' });
+    if (payErr) return { success: false, error: payErr.message };
+
+    // 2. Atualizar estado e auditoria da dívida
+    await supabase.from('debts').update({
+      status: updatedDebt.status,
+      updated_at: new Date().toISOString(),
+    }).eq('id', debtId);
+
+    // 3. Registar na trilha de auditoria
+    await supabase.from('audit_trail').insert({
+      debt_id: debtId,
+      action: updatedDebt.status === 'liquidada' ? 'Quitação Total' : 'Amortização Registada',
+      performed_by: payment.receivedBy || 'Operador',
+      details: `Amortização de ${payment.amount} Kz (Ref: ${payment.receiptRef}) via ${payment.paymentMethod}`,
+    });
+
+    return { success: true };
+  } catch (e: any) {
+    return { success: false, error: e.message };
+  }
+}
+
+export async function saveCompanyToSupabase(company: CompanySettings): Promise<{ success: boolean; error?: string }> {
+  try {
+    const row = mapCompanyToSupabase(company);
+    const { error } = await supabase.from('company_settings').upsert(row, { onConflict: 'id' });
+    if (error) return { success: false, error: error.message };
+    return { success: true };
+  } catch (e: any) {
+    return { success: false, error: e.message };
+  }
+}
+
+/**
+ * Escuta alterações em tempo real via Supabase Realtime
+ */
+export function subscribeToSupabaseChanges(onDataChange: () => void): () => void {
+  try {
+    const channel = supabase
+      .channel('kwanza-realtime-sync')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'debts' }, () => onDataChange())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'payments' }, () => onDataChange())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'clients' }, () => onDataChange())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'sellers' }, () => onDataChange())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'company_settings' }, () => onDataChange())
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  } catch {
+    return () => {};
+  }
+}

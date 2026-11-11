@@ -48,6 +48,19 @@ import { OfflineIndicator } from './components/OfflineIndicator';
 import { downloadDebtReceiptPDF } from './utils/pdfGenerator';
 import { getRemainingBalance, getDaysDiff, formatKwanza } from './utils/formatters';
 import { useLanguage } from './i18n/LanguageContext';
+import { 
+  pullFromSupabase, 
+  syncToSupabase, 
+  saveClientToSupabase, 
+  deleteClientFromSupabase, 
+  saveSellerToSupabase, 
+  deleteSellerFromSupabase, 
+  saveDebtToSupabase, 
+  savePaymentToSupabase, 
+  saveCompanyToSupabase, 
+  subscribeToSupabaseChanges, 
+  testSupabaseConnection 
+} from './lib/supabase';
 
 const STORAGE_KEY_DEBTS = 'kwanzacobro_debts_v2';
 const STORAGE_KEY_CLIENTS = 'kwanzacobro_clients_v2';
@@ -140,41 +153,40 @@ export default function App() {
   const [lastSyncTime, setLastSyncTime] = useState<string>('');
   const [isManualSyncing, setIsManualSyncing] = useState<boolean>(false);
 
-  // Carregar dados guardados no servidor Localhost e verificar Supabase ao iniciar a aplicação
+  // Carregar dados guardados no Supabase e Servidor ao iniciar a aplicação
   useEffect(() => {
     let isMounted = true;
-    const fetchLocalhostData = async () => {
-      // 1. Carregar do armazenamento local do servidor
+
+    const loadCloudData = async () => {
+      // 1. CARREGAMENTO DIRETO DO SUPABASE (Prioridade Máxima em Produção)
       try {
-        const res = await fetch('/api/data');
-        if (res.ok) {
-          const json = await res.json();
-          if (json.success && isMounted) {
-            if (Array.isArray(json.debts)) {
-              setDebts(json.debts);
-              localStorage.setItem(STORAGE_KEY_DEBTS, JSON.stringify(json.debts));
-            }
-            if (Array.isArray(json.clients)) {
-              setClients(json.clients);
-              localStorage.setItem(STORAGE_KEY_CLIENTS, JSON.stringify(json.clients));
-            }
-            if (Array.isArray(json.sellers)) {
-              setSellers(json.sellers);
-              localStorage.setItem(STORAGE_KEY_SELLERS, JSON.stringify(json.sellers));
-            }
-            if (json.company && json.company.name) {
-              setCompany(json.company);
-              localStorage.setItem(STORAGE_KEY_COMPANY, JSON.stringify(json.company));
-            }
-            setIsLocalhostSynced(true);
-            setLastSyncTime(new Date().toLocaleTimeString('pt-AO'));
+        const pullResult = await pullFromSupabase();
+        if (pullResult.success && pullResult.hasData && pullResult.data && isMounted) {
+          const { debts: cloudDebts, clients: cloudClients, sellers: cloudSellers, company: cloudCompany } = pullResult.data;
+          if (Array.isArray(cloudDebts) && cloudDebts.length > 0) {
+            setDebts(cloudDebts);
+            localStorage.setItem(STORAGE_KEY_DEBTS, JSON.stringify(cloudDebts));
           }
+          if (Array.isArray(cloudClients) && cloudClients.length > 0) {
+            setClients(cloudClients);
+            localStorage.setItem(STORAGE_KEY_CLIENTS, JSON.stringify(cloudClients));
+          }
+          if (Array.isArray(cloudSellers) && cloudSellers.length > 0) {
+            setSellers(cloudSellers);
+            localStorage.setItem(STORAGE_KEY_SELLERS, JSON.stringify(cloudSellers));
+          }
+          if (cloudCompany && cloudCompany.name) {
+            setCompany(cloudCompany);
+            localStorage.setItem(STORAGE_KEY_COMPANY, JSON.stringify(cloudCompany));
+          }
+          setIsSupabaseSynced(true);
+          setLastSyncTime(new Date().toLocaleTimeString('pt-AO'));
         }
-      } catch (err) {
-        console.warn('A carregar do armazenamento local offline:', err);
+      } catch (cloudErr) {
+        console.warn('Carregamento direto do Supabase falhou, tentando fallback:', cloudErr);
       }
 
-      // 2. Carregar dados diretamente da nuvem Supabase (Tabelas Relacionais: company_settings, sellers, clients, debts)
+      // 2. Fallback via Vercel Serverless Function / Servidor Local
       try {
         const supPull = await fetch('/api/supabase/pull');
         if (supPull.ok && isMounted) {
@@ -201,60 +213,70 @@ export default function App() {
           }
         }
       } catch (err) {
-        console.warn('A carregar dados do Supabase:', err);
+        console.warn('API fallback pull indisponível:', err);
       }
 
-      // 3. Testar Supabase Status
+      // 3. Testar Conexão e Latência do Supabase
       try {
-        const supStatus = await fetch('/api/supabase/status');
-        if (supStatus.ok && isMounted) {
-          const supJson = await supStatus.json();
-          if (supJson.connected) {
-            setIsSupabaseSynced(true);
-            setSupabaseLatency(supJson.latencyMs ?? null);
-          }
+        const health = await testSupabaseConnection();
+        if (isMounted && health.connected) {
+          setIsSupabaseSynced(true);
+          setSupabaseLatency(health.latencyMs ?? null);
         }
-      } catch {
-        // Ignorar em caso de falha de conexão inicial
-      }
+      } catch {}
     };
-    fetchLocalhostData();
-    return () => { isMounted = false; };
+
+    loadCloudData();
+
+    // 4. Subscrição em Tempo Real para sincronização automática entre múltiplos dispositivos
+    const unsubscribe = subscribeToSupabaseChanges(async () => {
+      try {
+        const pull = await pullFromSupabase();
+        if (pull.success && pull.hasData && pull.data && isMounted) {
+          if (Array.isArray(pull.data.debts) && pull.data.debts.length > 0) setDebts(pull.data.debts);
+          if (Array.isArray(pull.data.clients) && pull.data.clients.length > 0) setClients(pull.data.clients);
+          if (Array.isArray(pull.data.sellers) && pull.data.sellers.length > 0) setSellers(pull.data.sellers);
+          if (pull.data.company && pull.data.company.name) setCompany(pull.data.company);
+          setIsSupabaseSynced(true);
+          setLastSyncTime(new Date().toLocaleTimeString('pt-AO'));
+        }
+      } catch {}
+    });
+
+    return () => {
+      isMounted = false;
+      unsubscribe();
+    };
   }, []);
 
   // Sincronização manual acionada pelo utilizador
   const handleManualSyncNow = async () => {
     setIsManualSyncing(true);
     try {
-      // Enviar dados para o Supabase
-      await fetch('/api/supabase/sync', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ debts, clients, sellers, company }),
-      });
-      // Buscar dados atualizados do Supabase
-      const pullRes = await fetch('/api/supabase/pull');
-      if (pullRes.ok) {
-        const pullJson = await pullRes.json();
-        if (pullJson.success && pullJson.hasData) {
-          if (Array.isArray(pullJson.sellers) && pullJson.sellers.length > 0) {
-            setSellers(pullJson.sellers);
-            localStorage.setItem(STORAGE_KEY_SELLERS, JSON.stringify(pullJson.sellers));
-          }
-          if (Array.isArray(pullJson.clients) && pullJson.clients.length > 0) {
-            setClients(pullJson.clients);
-            localStorage.setItem(STORAGE_KEY_CLIENTS, JSON.stringify(pullJson.clients));
-          }
-          if (Array.isArray(pullJson.debts) && pullJson.debts.length > 0) {
-            setDebts(pullJson.debts);
-            localStorage.setItem(STORAGE_KEY_DEBTS, JSON.stringify(pullJson.debts));
-          }
-          if (pullJson.company && pullJson.company.name) {
-            setCompany(pullJson.company);
-            localStorage.setItem(STORAGE_KEY_COMPANY, JSON.stringify(pullJson.company));
-          }
-        }
+      // 1. Sincronizar diretamente com o Supabase
+      const syncRes = await syncToSupabase({ debts, clients, sellers, company });
+      if (syncRes.success) {
+        setIsSupabaseSynced(true);
       }
+
+      // 2. Também notificar endpoint serverless
+      try {
+        await fetch('/api/supabase/sync', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ debts, clients, sellers, company }),
+        });
+      } catch {}
+
+      // 3. Puxar versão mais recente do Supabase
+      const pullResult = await pullFromSupabase();
+      if (pullResult.success && pullResult.data) {
+        if (Array.isArray(pullResult.data.sellers) && pullResult.data.sellers.length > 0) setSellers(pullResult.data.sellers);
+        if (Array.isArray(pullResult.data.clients) && pullResult.data.clients.length > 0) setClients(pullResult.data.clients);
+        if (Array.isArray(pullResult.data.debts) && pullResult.data.debts.length > 0) setDebts(pullResult.data.debts);
+        if (pullResult.data.company && pullResult.data.company.name) setCompany(pullResult.data.company);
+      }
+
       setIsSupabaseSynced(true);
       setLastSyncTime(new Date().toLocaleTimeString('pt-AO'));
     } catch (e) {
@@ -415,7 +437,7 @@ export default function App() {
     );
   };
 
-  // Handlers de Ações
+  // Handlers de Ações com Persistência Direta no Supabase
   const handleCreateDebt = (newDebtData: Omit<Debt, 'id' | 'payments' | 'createdAt' | 'updatedAt'>) => {
     // 1. Garantir que o cliente existe na lista de clientes (Integridade Referencial com Supabase)
     const clientExists = clients.some(c => c.id === newDebtData.clientId);
@@ -440,6 +462,8 @@ export default function App() {
         } catch {}
         return updated;
       });
+      // Persistir no Supabase
+      saveClientToSupabase(autoClient).catch(() => {});
     }
 
     const newDebt: Debt = {
@@ -450,6 +474,17 @@ export default function App() {
       updatedAt: new Date().toISOString(),
     };
     setDebts(prev => [newDebt, ...prev]);
+
+    // Persistência Direta no Supabase
+    saveDebtToSupabase(newDebt).then(res => {
+      if (res.success) {
+        setIsSupabaseSynced(true);
+        setLastSyncTime(new Date().toLocaleTimeString('pt-AO'));
+      }
+    }).catch(err => {
+      console.warn('Erro ao salvar dívida no Supabase:', err);
+    });
+
     // GERAÇÃO AUTOMÁTICA DO RECIBO EM PDF APÓS GRAVAR!
     setNewlyCreatedDebtForReceipt(newDebt);
   };
@@ -475,8 +510,9 @@ export default function App() {
       receivedBy: sellerName,
     };
 
-    setDebts(prev =>
-      prev.map(d => {
+    setDebts(prev => {
+      let debtToSave: Debt | null = null;
+      const updatedList = prev.map(d => {
         if (d.id !== debtId) return d;
         const newPayments = [...d.payments, payment];
         const totalPaid = newPayments.reduce((sum, p) => sum + p.amount, 0);
@@ -503,36 +539,61 @@ export default function App() {
           auditTrail: [newAuditEntry, ...(d.auditTrail || [])],
           updatedAt: new Date().toISOString(),
         };
+        debtToSave = updatedDebt;
 
         if (sendWhatsApp) {
-          // Abrir modal de WhatsApp com recibo de quitação/amortização após salvar
           setTimeout(() => {
             setSelectedDebtForWhatsApp(updatedDebt);
           }, 200);
         }
 
         return updatedDebt;
-      })
-    );
+      });
+
+      // Persistir amortização no Supabase
+      if (debtToSave) {
+        savePaymentToSupabase(debtId, payment, debtToSave).then(res => {
+          if (res.success) {
+            setIsSupabaseSynced(true);
+            setLastSyncTime(new Date().toLocaleTimeString('pt-AO'));
+          }
+        }).catch(err => {
+          console.warn('Erro ao salvar amortização no Supabase:', err);
+        });
+      }
+
+      return updatedList;
+    });
   };
 
   const handleUpdateDueDate = (debtId: string, newDueDate: string, reason: string) => {
-    setDebts(prev =>
-      prev.map(d => {
+    setDebts(prev => {
+      let debtToSave: Debt | null = null;
+      const updatedList = prev.map(d => {
         if (d.id !== debtId) return d;
         const updatedTerms = reason 
           ? `${d.terms ? `${d.terms}. ` : ''}Reescalonado para ${newDueDate} (Motivo: ${reason})`
           : d.terms;
 
-        return {
+        const updated: Debt = {
           ...d,
           dueDate: newDueDate,
           status: 'acordo',
           terms: updatedTerms,
           updatedAt: new Date().toISOString(),
         };
-      })
-    );
+        debtToSave = updated;
+        return updated;
+      });
+
+      if (debtToSave) {
+        saveDebtToSupabase(debtToSave).then(res => {
+          if (res.success) setIsSupabaseSynced(true);
+        }).catch(() => {});
+      }
+
+      return updatedList;
+    });
 
     // Atualizar no modal de detalhe se estiver aberto
     if (selectedDebtForDetail && selectedDebtForDetail.id === debtId) {
@@ -548,6 +609,14 @@ export default function App() {
       createdAt: new Date().toISOString(),
     };
     setClients(prev => [...prev, newClient]);
+    saveClientToSupabase(newClient).then(res => {
+      if (res.success) {
+        setIsSupabaseSynced(true);
+        setLastSyncTime(new Date().toLocaleTimeString('pt-AO'));
+      }
+    }).catch(err => {
+      console.warn('Erro ao salvar cliente no Supabase:', err);
+    });
   };
 
   // Bloqueio de Segurança: Vendedor não tem permissão para aceder a 'sellers' ou 'settings'
@@ -563,10 +632,34 @@ export default function App() {
       id: `sel-${Date.now()}`,
     };
     setSellers(prev => [...prev, newSeller]);
+    saveSellerToSupabase(newSeller).then(res => {
+      if (res.success) {
+        setIsSupabaseSynced(true);
+        setLastSyncTime(new Date().toLocaleTimeString('pt-AO'));
+      }
+    }).catch(err => {
+      console.warn('Erro ao salvar vendedor no Supabase:', err);
+    });
   };
 
   const handleDeleteSeller = (sellerId: string) => {
     setSellers(prev => prev.filter(s => s.id !== sellerId));
+    deleteSellerFromSupabase(sellerId).catch(() => {});
+  };
+
+  const handleSaveCompany = (updated: CompanySettings) => {
+    setCompany(updated);
+    try {
+      localStorage.setItem(STORAGE_KEY_COMPANY, JSON.stringify(updated));
+    } catch {}
+    saveCompanyToSupabase(updated).then(res => {
+      if (res.success) {
+        setIsSupabaseSynced(true);
+        setLastSyncTime(new Date().toLocaleTimeString('pt-AO'));
+      }
+    }).catch(err => {
+      console.warn('Erro ao salvar configurações da empresa no Supabase:', err);
+    });
   };
 
   const handleRestoreDemoData = () => {
@@ -794,7 +887,7 @@ export default function App() {
           {activeTab === 'settings' && currentUser?.role === 'admin' && (
             <CompanySettingsView
               company={company}
-              onSaveCompany={setCompany}
+              onSaveCompany={handleSaveCompany}
               debts={debts}
               clients={clients}
               sellers={sellers}
