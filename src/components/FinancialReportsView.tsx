@@ -202,7 +202,7 @@ export const FinancialReportsView: React.FC<FinancialReportsViewProps> = ({
               title={`Recuperado: ${totals.recoveryRate}%`}
             />
             <div 
-              className="bg-emerald-600 h-full transition-all duration-500" 
+              className="bg-slate-300 h-full transition-all duration-500" 
               style={{ width: `${100 - totals.recoveryRate}%` }}
               title={`Pendente: ${100 - totals.recoveryRate}%`}
             />
@@ -216,8 +216,8 @@ export const FinancialReportsView: React.FC<FinancialReportsViewProps> = ({
             </div>
 
             <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-600"></span>
-              <span className="font-bold text-emerald-800">Em Aberto: {100 - totals.recoveryRate}%</span>
+              <span className="w-2.5 h-2.5 rounded-full bg-slate-400"></span>
+              <span className="font-bold text-slate-700">Em Aberto: {100 - totals.recoveryRate}%</span>
               <span className="text-slate-400">({formatKwanza(totals.remaining)})</span>
             </div>
           </div>
