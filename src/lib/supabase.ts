@@ -439,17 +439,7 @@ export async function syncToSupabase(payload: {
     errors.push(`Empresa: ${e.message}`);
   }
 
-  // 2. Sincronizar Vendedores (sellers)
-  try {
-    if (Array.isArray(payload.sellers) && payload.sellers.length > 0) {
-      const sellerRows = payload.sellers.map(mapSellerToSupabase);
-      const { error } = await supabase.from('sellers').upsert(sellerRows, { onConflict: 'id' });
-      if (!error) anySuccess = true;
-      else errors.push(`Vendedores: ${error.message}`);
-    }
-  } catch (e: any) {
-    errors.push(`Vendedores: ${e.message}`);
-  }
+  // Os registos de vendedores são geridos pelo endpoint administrativo de Supabase Auth.
 
   // 3. Sincronizar Clientes (clients)
   try {
