@@ -127,20 +127,20 @@ export const Sidebar: React.FC<SidebarProps> = ({
         fixed top-0 bottom-0 left-0 z-50 w-64 sm:w-72 bg-white border-r border-emerald-100 shadow-[8px_0_30px_rgba(15,80,45,0.04)] flex flex-col justify-between transition-transform duration-200 ease-in-out
         ${isMobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
       `}>
-        {/* Topo da Sidebar: Logomarca KwanzaCobro & Fechar Mobile */}
+        {/* Topo da Sidebar: identidade NEUROJUS */}
         <div className="p-5 border-b border-slate-100 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            {/* Logomarca Oficial KwanzaCobro */}
+            {/* Logomarca NEUROJUS */}
             <div className="w-10 h-10 rounded-xl bg-white border border-slate-200/90 p-1 flex items-center justify-center shadow-xs shrink-0 overflow-hidden">
               <img 
                 src={company?.logoUrl || '/assets/aistudio/IMG-20261010-WA0062_2b38905c.jpg'} 
-                alt="KwanzaCobro" 
+                alt="NEUROJUS" 
                 className="w-full h-full object-contain"
               />
             </div>
             <div className="flex flex-col">
               <span className="font-extrabold text-base tracking-tight text-slate-900 leading-none">
-                Kwanza<span className="text-emerald-700">Cobro</span>
+                <span className="text-emerald-800">NEURO</span><span className="text-emerald-600">JUS</span>
               </span>
               <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider mt-1">
                 {t('app.slogan', 'Gestão de Dívidas')}
@@ -149,6 +149,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
 
           <button 
+            type="button"
+            aria-label="Fechar menu de navegação"
             onClick={onCloseMobile}
             className="lg:hidden p-1.5 text-slate-400 hover:text-slate-700 rounded-lg transition-colors cursor-pointer"
           >
@@ -159,6 +161,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {/* Botão de Ação Rápida Primária */}
         <div className="px-5 pt-4">
           <button
+            type="button"
             onClick={() => {
               onOpenNewDebt();
               onCloseMobile();
@@ -184,6 +187,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
                 return (
                   <button
+                    type="button"
                     key={item.id}
                     onClick={() => handleSelectTab(item.id as ActiveTab)}
                     className={`
@@ -247,6 +251,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
               {onLogout && (
                 <button
+                  type="button"
                   onClick={onLogout}
                   title="Terminar Sessão"
                   className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
