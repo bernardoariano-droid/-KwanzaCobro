@@ -15,7 +15,6 @@ import {
   Globe
 } from 'lucide-react';
 import { AuthUser, Seller, CompanySettings } from '../types/debt';
-import { defaultAdminUser } from '../data/initialData';
 import { supabase, SUPABASE_CONFIGURED } from '../lib/supabase';
 import { useLanguage } from '../i18n/LanguageContext';
 import { LanguageSelector } from './LanguageSelector';
@@ -92,30 +91,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({ sellers, company, onLoginS
     setError(recoveryError ? recoveryError.message : 'Se o e-mail estiver registado, receberá uma ligação para redefinir a senha.');
   };
 
-  const handleQuickLoginAdmin = () => {
-    setIdentifier('admin@kwanzacobro.ao');
-    setPassword('admin');
-    setError(null);
-    onLoginSuccess({
-      ...defaultAdminUser,
-      name: 'Administrador Geral · KwanzaCobro',
-      email: 'admin@kwanzacobro.ao',
-    });
-  };
-
-  const handleQuickLoginSeller = (seller: Seller) => {
-    setIdentifier(seller.email || seller.phone);
-    setPassword('123');
-    setError(null);
-    onLoginSuccess({
-      id: seller.id,
-      name: seller.name,
-      email: seller.email || `${seller.name.toLowerCase().replace(/\s+/g, '.')}@kwanzacobro.ao`,
-      phone: seller.phone,
-      role: seller.role || 'vendedor',
-      branch: seller.branch,
-    });
-  };
 
   return (
     <div className="min-h-screen bg-emerald-950 bg-gradient-to-br from-emerald-950 via-green-900 to-emerald-950 flex flex-col justify-center items-center p-4 sm:p-6 text-slate-900 selection:bg-emerald-600 selection:text-white">
@@ -228,82 +203,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ sellers, company, onLoginS
             </button>
           </form>
 
-          {/* Acessos rápidos disponíveis apenas em desenvolvimento */}
-          {import.meta.env.DEV && <div className="px-6 sm:px-8 pb-6 pt-2 border-t border-slate-100 bg-slate-50/70 space-y-3">
-            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block text-center">
-              {sellers.length > 0 ? 'Acesso Rápido para Avaliação' : 'Acesso de Administrador Geral'}
-            </span>
-
-            <div className={`grid gap-2 ${sellers.length > 0 ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1'}`}>
-              <button
-                type="button"
-                onClick={handleQuickLoginAdmin}
-                className="py-3 px-3.5 bg-white border border-emerald-200 hover:border-emerald-400 hover:bg-emerald-50/50 rounded-xl transition-all text-left shadow-2xs group cursor-pointer"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold text-sm shrink-0 font-mono">
-                    A
-                  </div>
-                  <div>
-                    <span className="text-xs font-bold text-slate-900 block group-hover:text-emerald-900">
-                      Entrar como Administrador Geral
-                    </span>
-                    <span className="text-[11px] text-slate-500 block">
-                      Acesso total para cadastrar funcionários, clientes e gerir o sistema
-                    </span>
-                  </div>
-                </div>
-              </button>
-
-              {sellers.length > 0 && (
-                <button
-                  type="button"
-                  onClick={() => handleQuickLoginSeller(sellers[0])}
-                  className="py-2.5 px-3 bg-white border border-slate-200 hover:border-emerald-400 hover:bg-emerald-50/50 rounded-xl transition-all text-left shadow-2xs group cursor-pointer"
-                >
-                  <div className="flex items-center gap-2">
-                    <div className="w-6 h-6 rounded-md bg-amber-100 text-amber-800 flex items-center justify-center font-bold text-xs shrink-0 font-mono">
-                      V
-                    </div>
-                    <div>
-                      <span className="text-xs font-bold text-slate-900 block group-hover:text-amber-900 truncate">
-                        {sellers[0].name.split(' ')[0]} (Vendedor)
-                      </span>
-                      <span className="text-[10px] text-slate-500 block">
-                        Carteira individual
-                      </span>
-                    </div>
-                  </div>
-                </button>
-              )}
-            </div>
-
-            {sellers.length === 0 && (
-              <p className="text-[11px] text-slate-500 text-center pt-1">
-                Base de dados limpa com sucesso. Entre com o Administrador para começar a registar a sua equipa.
-              </p>
-            )}
-
-            {/* Outros Vendedores disponíveis para teste */}
-            {sellers.length > 1 && (
-              <div className="pt-1 text-center">
-                <span className="text-[10px] text-slate-400 block mb-1">Outros vendedores da equipa:</span>
-                <div className="flex flex-wrap items-center justify-center gap-1.5">
-                  {sellers.slice(1, 4).map(s => (
-                    <button
-                      key={s.id}
-                      type="button"
-                      onClick={() => handleQuickLoginSeller(s)}
-                      className="px-2 py-1 text-[10px] font-semibold bg-white border border-slate-200 hover:border-emerald-300 rounded-md text-slate-600 transition-colors cursor-pointer"
-                    >
-                      {s.name.split(' ')[0]} ({s.branch.split(' ')[0]})
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>}
-        </div>
+          {/* Acessos rápidos disponíveis apenas em desenvolvimento */}</div>
 
         {/* Footer */}
         <div className="mt-4 text-center text-xs text-emerald-200/80">
