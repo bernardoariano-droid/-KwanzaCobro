@@ -26,7 +26,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       phone: s.phone,
       branch: s.branch,
       email: s.email,
-      password: s.password || '123',
+      password: s.password || '',
       role: s.role || 'vendedor',
       createdAt: s.created_at ? String(s.created_at).slice(0, 10) : undefined,
     }));
@@ -111,8 +111,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         penaltyPerDayRate: compRow.penalty_per_day_rate ?? 0.1,
         daysBeforeDueAlert: compRow.days_before_due_alert ?? 5,
         autoAlertNotifications: compRow.auto_alert_notifications ?? true,
-        senha: compRow.senha || compRow.password || 'admin',
-        password: compRow.password || compRow.senha || 'admin',
+        senha: compRow.senha || compRow.password || '',
+        password: compRow.password || compRow.senha || '',
       };
     }
 
