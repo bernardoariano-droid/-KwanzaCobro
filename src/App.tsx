@@ -791,7 +791,7 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 flex font-sans text-slate-900">
+    <div className="min-h-screen bg-[#f6faf7] flex font-sans text-slate-900">
       {/* Sidebar Adaptável para Computador, Tablet e Drawer Móvel */}
       <Sidebar
         activeTab={activeTab}
@@ -992,13 +992,13 @@ export default function App() {
         <footer className="border-t border-slate-200/80 bg-white py-4 mt-auto">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500">
             <div className="flex items-center flex-wrap gap-2.5">
-              <strong className="text-slate-900 font-bold">KwanzaCobro</strong>
+              <strong className="text-emerald-800 font-extrabold tracking-tight">NEUROJUS</strong>
               <span aria-hidden="true">·</span>
               <span>Gestão e Controlo de Dívidas Empresariais</span>
               <span aria-hidden="true">·</span>
               <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200 shadow-2xs">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                <span>Localhost Ativo · Ficheiro JSON Local</span>
+                <span>Sistema de Gestão de Crédito</span>
               </span>
               <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200 shadow-2xs">
                 <span className={`w-1.5 h-1.5 rounded-full ${isSupabaseSynced ? 'bg-emerald-500' : 'bg-slate-400'}`}></span>
