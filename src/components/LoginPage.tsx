@@ -14,18 +14,16 @@ import {
   Sparkles,
   Globe
 } from 'lucide-react';
-import { AuthUser, Seller, CompanySettings } from '../types/debt';
+import { AuthUser } from '../types/debt';
 import { supabase, SUPABASE_CONFIGURED } from '../lib/supabase';
 import { useLanguage } from '../i18n/LanguageContext';
 import { LanguageSelector } from './LanguageSelector';
 
 interface LoginPageProps {
-  sellers: Seller[];
-  company: CompanySettings;
   onLoginSuccess: (user: AuthUser) => void;
 }
 
-export const LoginPage: React.FC<LoginPageProps> = ({ sellers, company, onLoginSuccess }) => {
+export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
   const { t } = useLanguage();
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
@@ -202,8 +200,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({ sellers, company, onLoginS
               <ArrowRight className="w-4 h-4 text-emerald-200" />
             </button>
           </form>
-
-          
 
         {/* Footer */}
         <div className="mt-4 text-center text-xs text-emerald-200/80">
