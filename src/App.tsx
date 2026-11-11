@@ -3,14 +3,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Debt, Client, Seller, CompanySettings, Payment, AuthUser, DebtStatus, AuditEntry } from './types/debt';
 import { 
   initialDebts, 
   initialClients, 
   initialSellers, 
   initialCompanySettings,
-  defaultAdminUser,
   demoDebts,
   demoClients,
   demoSellers
@@ -54,8 +53,7 @@ import {
   syncToSupabase, 
   saveClientToSupabase, 
   deleteClientFromSupabase, 
-  saveSellerToSupabase, 
-  deleteSellerFromSupabase, 
+    deleteSellerFromSupabase, 
   saveDebtToSupabase, 
   savePaymentToSupabase, 
   saveCompanyToSupabase, 
@@ -67,7 +65,6 @@ const STORAGE_KEY_DEBTS = 'kwanzacobro_debts_v2';
 const STORAGE_KEY_CLIENTS = 'kwanzacobro_clients_v2';
 const STORAGE_KEY_SELLERS = 'kwanzacobro_sellers_v2';
 const STORAGE_KEY_COMPANY = 'kwanzacobro_company_v2';
-const STORAGE_KEY_AUTH = 'kwanzacobro_auth_session_v2';
 
 export default function App() {
   const { t } = useLanguage();
@@ -193,6 +190,23 @@ export default function App() {
   const [supabaseLatency, setSupabaseLatency] = useState<number | null>(null);
   const [lastSyncTime, setLastSyncTime] = useState<string>('');
   const [isManualSyncing, setIsManualSyncing] = useState<boolean>(false);
+
+  // Impedir que dados em cache de uma sessão anterior sejam mostrados a outro utilizador.
+  const previousAuthId = useRef<string | null>(null);
+  useEffect(() => {
+    const nextAuthId = currentUser?.id || null;
+    if (previousAuthId.current !== nextAuthId) {
+      previousAuthId.current = nextAuthId;
+      localStorage.removeItem(STORAGE_KEY_DEBTS);
+      localStorage.removeItem(STORAGE_KEY_CLIENTS);
+      localStorage.removeItem(STORAGE_KEY_SELLERS);
+      localStorage.removeItem(STORAGE_KEY_COMPANY);
+      setDebts([]);
+      setClients([]);
+      setSellers([]);
+      setCompany(initialCompanySettings);
+    }
+  }, [currentUser?.id]);
 
   // Carregar dados guardados no Supabase e Servidor ao iniciar a aplicação
   useEffect(() => {
