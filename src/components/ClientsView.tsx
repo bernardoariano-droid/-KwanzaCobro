@@ -187,9 +187,9 @@ export const ClientsView: React.FC<ClientsViewProps> = ({
         {!isSeller && (
           <button
             onClick={onOpenNewClient}
-            className="inline-flex items-center gap-1.5 px-4 py-2.5 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 active:scale-95 rounded-xl shadow-xs transition-all whitespace-nowrap shrink-0 cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-4 py-2.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 active:scale-95 rounded-xl shadow-xs transition-all whitespace-nowrap shrink-0 cursor-pointer"
           >
-            <UserPlus className="w-4 h-4 text-blue-200" />
+            <UserPlus className="w-4 h-4 text-emerald-200" />
             <span>{t('clients.btn_register', '+ Novo Cliente')}</span>
           </button>
         )}
@@ -243,7 +243,7 @@ export const ClientsView: React.FC<ClientsViewProps> = ({
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
             placeholder={t('clients.search_placeholder', 'Buscar por nome, NIF ou telefone...')}
-            className="w-full pl-9 pr-3 py-2 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 bg-slate-50/50"
+            className="w-full pl-9 pr-3 py-2 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-500 bg-slate-50/50"
           />
         </div>
 
@@ -252,7 +252,7 @@ export const ClientsView: React.FC<ClientsViewProps> = ({
           <select
             value={provinceFilter}
             onChange={e => setProvinceFilter(e.target.value)}
-            className="py-1.5 px-3 text-xs border border-slate-200 rounded-lg bg-white focus:ring-1 focus:ring-blue-500"
+            className="py-1.5 px-3 text-xs border border-slate-200 rounded-lg bg-white focus:ring-1 focus:ring-emerald-500"
           >
             <option value="all">{t('common.all', 'Todas as Províncias')} ({provinces.length})</option>
             {provinces.map(p => (
@@ -272,9 +272,9 @@ export const ClientsView: React.FC<ClientsViewProps> = ({
           </p>
           <button
             onClick={onOpenNewClient}
-            className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-xs cursor-pointer"
+            className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-xs cursor-pointer"
           >
-            <UserPlus className="w-4 h-4 text-blue-200" />
+            <UserPlus className="w-4 h-4 text-emerald-200" />
             <span>{t('clients.btn_register', '+ Novo Cliente')}</span>
           </button>
         </div>
@@ -292,11 +292,11 @@ export const ClientsView: React.FC<ClientsViewProps> = ({
                 {/* Cabeçalho do Card */}
                 <div className="flex items-start justify-between gap-2 border-b border-slate-100 pb-2.5">
                   <div className="flex items-center gap-2.5 min-w-0">
-                    <div className="w-9 h-9 rounded-lg bg-blue-50 border border-blue-200 flex items-center justify-center shrink-0">
+                    <div className="w-9 h-9 rounded-lg bg-emerald-50 border border-emerald-200 flex items-center justify-center shrink-0">
                       {client.clientType === 'empresa' ? (
-                        <Building2 className="w-4 h-4 text-blue-700" />
+                        <Building2 className="w-4 h-4 text-emerald-700" />
                       ) : (
-                        <User className="w-4 h-4 text-blue-700" />
+                        <User className="w-4 h-4 text-emerald-700" />
                       )}
                     </div>
                     <div className="min-w-0">
@@ -328,9 +328,9 @@ export const ClientsView: React.FC<ClientsViewProps> = ({
                   <div className="flex items-center gap-2">
                     <a 
                       href={`tel:${client.phone}`}
-                      className="font-mono font-bold text-blue-700 flex items-center gap-1 hover:underline"
+                      className="font-mono font-bold text-emerald-700 flex items-center gap-1 hover:underline"
                     >
-                      <Phone className="w-3 h-3 text-blue-600" />
+                      <Phone className="w-3 h-3 text-emerald-600" />
                       <span>{client.phone}</span>
                     </a>
                   </div>
@@ -356,7 +356,7 @@ export const ClientsView: React.FC<ClientsViewProps> = ({
                 <div className="mt-2">
                   <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden mb-1">
                     <div 
-                      className={`h-full rounded-full ${client.creditUtilization > 90 ? 'bg-rose-600' : 'bg-blue-600'}`}
+                      className={`h-full rounded-full ${client.creditUtilization > 90 ? 'bg-rose-600' : 'bg-emerald-600'}`}
                       style={{ width: `${client.creditUtilization}%` }}
                     />
                   </div>
@@ -386,7 +386,7 @@ export const ClientsView: React.FC<ClientsViewProps> = ({
                     ) : (
                       <button
                         onClick={() => onOpenNewDebtForClient(client.id)}
-                        className="w-full flex items-center justify-center gap-1 py-2.5 px-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 active:scale-98 rounded-xl shadow-xs transition-colors cursor-pointer min-h-[44px]"
+                        className="w-full flex items-center justify-center gap-1 py-2.5 px-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 active:scale-98 rounded-xl shadow-xs transition-colors cursor-pointer min-h-[44px]"
                       >
                         <Plus className="w-4 h-4" />
                         <span>{t('clients.btn_new_sale', '+ Venda')}</span>
@@ -413,7 +413,7 @@ export const ClientsView: React.FC<ClientsViewProps> = ({
 
                     <button
                       onClick={() => onOpenNewDebtForClient(client.id)}
-                      className="py-2 px-2 text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-lg font-medium transition-colors flex items-center justify-center gap-1 min-h-[38px] cursor-pointer"
+                      className="py-2 px-2 text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-lg font-medium transition-colors flex items-center justify-center gap-1 min-h-[38px] cursor-pointer"
                     >
                       <Plus className="w-3.5 h-3.5" />
                       <span>{t('clients.btn_new_sale', 'Nova Compra')}</span>
@@ -446,11 +446,11 @@ export const ClientsView: React.FC<ClientsViewProps> = ({
                     <tr key={client.id} className="hover:bg-slate-50/80 transition-colors">
                       <td className="py-3 px-4">
                         <div className="flex items-center gap-2.5">
-                          <div className="w-8 h-8 rounded-lg bg-blue-50 border border-blue-200 flex items-center justify-center shrink-0">
+                          <div className="w-8 h-8 rounded-lg bg-emerald-50 border border-emerald-200 flex items-center justify-center shrink-0">
                             {client.clientType === 'empresa' ? (
-                              <Building2 className="w-4 h-4 text-blue-800" />
+                              <Building2 className="w-4 h-4 text-emerald-800" />
                             ) : (
-                              <User className="w-4 h-4 text-blue-800" />
+                              <User className="w-4 h-4 text-emerald-800" />
                             )}
                           </div>
                           <div>
@@ -485,7 +485,7 @@ export const ClientsView: React.FC<ClientsViewProps> = ({
                       <td className="py-3 px-4 whitespace-nowrap text-center">
                         <div className="w-20 mx-auto bg-slate-100 h-1.5 rounded-full overflow-hidden mb-1">
                           <div 
-                            className={`h-full rounded-full ${client.creditUtilization > 90 ? 'bg-rose-600' : 'bg-blue-600'}`}
+                            className={`h-full rounded-full ${client.creditUtilization > 90 ? 'bg-rose-600' : 'bg-emerald-600'}`}
                             style={{ width: `${client.creditUtilization}%` }}
                           />
                         </div>
@@ -552,7 +552,7 @@ export const ClientsView: React.FC<ClientsViewProps> = ({
                           <button
                             onClick={() => onOpenNewDebtForClient(client.id)}
                             title={t('clients.btn_new_sale', 'Nova Venda')}
-                            className="p-1.5 text-blue-700 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
+                            className="p-1.5 text-emerald-700 hover:bg-emerald-50 rounded-lg transition-colors cursor-pointer"
                           >
                             <Plus className="w-4 h-4" />
                           </button>
