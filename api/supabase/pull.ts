@@ -13,8 +13,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // 1. Ler tabelas relacionais em paralelo
     const [compRes, selRes, cliRes, debtRes, itemsRes, paysRes] = await Promise.all([
-      supabase.from('company_settings').select('*').limit(1),
-      supabase.from('sellers').select('*').order('created_at', { ascending: false }),
+      supabase.from('company_settings').select('id,name,nif,phone,email,address,city,bank_name,iban,express_phone,currency,logo_url,penalty_per_day_rate,days_before_due_alert,auto_alert_notifications,updated_at').limit(1),
+      supabase.from('sellers').select('id,name,phone,branch,email,role,created_at').order('created_at', { ascending: false }),
       supabase.from('clients').select('*').order('created_at', { ascending: false }),
       supabase.from('debts').select('*').order('created_at', { ascending: false }),
       supabase.from('debt_items').select('*'),
