@@ -95,16 +95,16 @@ export const AutoReminderModal: React.FC<AutoReminderModalProps> = ({
     <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl max-w-3xl w-full border border-slate-200 shadow-2xl overflow-hidden my-8">
         {/* Cabeçalho */}
-        <div className="px-6 py-4 bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-950 text-white flex items-center justify-between border-b border-blue-500/20">
+        <div className="px-6 py-4 bg-gradient-to-r from-emerald-900 via-emerald-800 to-green-950 text-white flex items-center justify-between border-b border-emerald-500/20">
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-blue-500/20 border border-blue-400/30 flex items-center justify-center text-blue-200 shadow-xs">
-              <Bell className="w-5 h-5 text-blue-200" />
+            <div className="w-9 h-9 rounded-xl bg-emerald-500/20 border border-emerald-400/30 flex items-center justify-center text-emerald-200 shadow-xs">
+              <Bell className="w-5 h-5 text-emerald-200" />
             </div>
             <div>
               <h2 className="text-base font-bold">
                 Automação de Lembretes: Faltam 5 Dias para o Prazo
               </h2>
-              <p className="text-xs text-blue-200">
+              <p className="text-xs text-emerald-200">
                 Disparo preventivo de avisos para evitar inadimplência no comércio
               </p>
             </div>
