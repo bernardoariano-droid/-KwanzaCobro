@@ -54,7 +54,11 @@ export const SellersView: React.FC<SellersViewProps> = ({
     e.preventDefault();
     if (!name.trim()) return;
 
-    const formattedEmail = email.trim() || `${name.toLowerCase().replace(/\s+/g, '.')}@kwanzacobro.ao`;
+    const formattedEmail = email.trim().toLowerCase();
+    if (!formattedEmail.includes('@') || password.trim().length < 8) {
+      alert('Informe um e-mail válido e uma senha inicial com pelo menos 8 caracteres.');
+      return;
+    }
 
     try {
       await onAddSeller({
@@ -199,7 +203,9 @@ export const SellersView: React.FC<SellersViewProps> = ({
               </label>
               <input
                 type="email"
-                placeholder="funcionario@kwanzacobro.ao"
+                required
+                autoComplete="email"
+                placeholder="funcionario@empresa.ao"
                 value={email}
                 onChange={e => setEmail(e.target.value)}
                 className="w-full py-2 px-3 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 bg-white"
@@ -208,7 +214,7 @@ export const SellersView: React.FC<SellersViewProps> = ({
 
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1">
-                Senha de Acesso Inicial <span className="text-rose-500">*</span>
+                Senha inicial (mínimo 8 caracteres) <span className="text-rose-500">*</span>
               </label>
               <input
                 type="password"
