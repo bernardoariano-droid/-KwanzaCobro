@@ -230,8 +230,9 @@ export default function App() {
 
       // 2. Fallback via Vercel Serverless Function / Servidor Local
       try {
-        const supPull = await fetch('/api/supabase/pull');
-        if (supPull.ok && isMounted) {
+        const { data: authSession } = await supabase.auth.getSession();
+        const supPull = authSession.session ? await fetch('/api/supabase/pull', { headers: { Authorization: `Bearer ${authSession.session.access_token}` } }) : null;
+        if (supPull?.ok && isMounted) {
           const supPullJson = await supPull.json();
           if (supPullJson.success && supPullJson.hasData) {
             if (Array.isArray(supPullJson.sellers) && supPullJson.sellers.length > 0) {
@@ -367,12 +368,13 @@ export default function App() {
     const timer = setTimeout(async () => {
       // 1. Sincronização Localhost
       try {
-        const res = await fetch('/api/data/sync', {
+        const { data: authSession } = await supabase.auth.getSession();
+        const res = currentUser?.role === 'admin' && authSession.session ? await fetch('/api/data/sync', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authSession.session.access_token}` },
           body: JSON.stringify({ debts, clients, sellers, company }),
-        });
-        if (res.ok) {
+        }) : null;
+        if (res?.ok) {
           setIsLocalhostSynced(true);
           setLastSyncTime(new Date().toLocaleTimeString('pt-AO'));
         }
