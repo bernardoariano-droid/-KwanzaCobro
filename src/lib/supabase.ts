@@ -3,27 +3,28 @@ import { CompanySettings, Seller, Client, Debt, DebtItem, Payment } from '../typ
 
 // Função para sanitizar a URL fornecida pelo utilizador (remover /rest/v1/ se presente)
 export function sanitizeSupabaseUrl(rawUrl?: string): string {
-  if (!rawUrl) return 'https://ckcwpcnsfennfjmjwoqp.supabase.co';
-  let cleaned = rawUrl.trim();
-  cleaned = cleaned.replace(/\/rest\/v1\/?$/, '');
-  cleaned = cleaned.replace(/\/+$/, '');
-  return cleaned;
+  if (!rawUrl) return '';
+  return rawUrl.trim().replace(/\\/rest\\/v1\\/?$/, '').replace(/\\/+$/, '');
 }
 
-const rawUrl = (import.meta as any).env?.VITE_SUPABASE_URL || 'https://ckcwpcnsfennfjmjwoqp.supabase.co';
-const rawKey = (import.meta as any).env?.VITE_SUPABASE_ANON_KEY || 'sb_publishable_U4Rgccyd4DrhKeI7AuVyCQ_tYnwa-6p';
+const env = (import.meta as any).env || {};
+export const SUPABASE_URL = sanitizeSupabaseUrl(env.VITE_SUPABASE_URL);
+export const SUPABASE_ANON_KEY = String(env.VITE_SUPABASE_ANON_KEY || '').trim();
+export const SUPABASE_CONFIGURED = Boolean(SUPABASE_URL && SUPABASE_ANON_KEY);
+export const SUPABASE_PROJECT_REF = (() => {
+  try {
+    return new URL(SUPABASE_URL).hostname.split('.')[0] || 'unconfigured';
+  } catch {
+    return 'unconfigured';
+  }
+})();
 
-export const SUPABASE_URL = sanitizeSupabaseUrl(rawUrl);
-export const SUPABASE_ANON_KEY = rawKey.trim();
-export const SUPABASE_PROJECT_REF = 'ckcwpcnsfennfjmjwoqp';
-
-// Instância oficial do cliente Supabase para o frontend
-export const supabase: SupabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-  auth: {
-    persistSession: true,
-    autoRefreshToken: true,
-  },
-});
+// Apenas a chave anon/publishable pode estar no frontend. Nunca colocar service_role aqui.
+export const supabase: SupabaseClient = createClient(
+  SUPABASE_URL || 'https://missing-project.supabase.co',
+  SUPABASE_ANON_KEY || 'missing-anon-key',
+  { auth: { persistSession: true, autoRefreshToken: true } }
+);
 
 export interface SupabaseHealthResult {
   connected: boolean;
@@ -268,6 +269,14 @@ export function mapDebtToSupabase(debt: Debt): { debtRow: any; itemsRows: any[];
  */
 export async function testSupabaseConnection(): Promise<SupabaseHealthResult> {
   const start = performance.now();
+  if (!SUPABASE_CONFIGURED) {
+    return {
+      connected: false,
+      url: SUPABASE_URL,
+      projectId: SUPABASE_PROJECT_REF,
+      message: 'Configure VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY nas variáveis de ambiente.',
+    };
+  }
   try {
     const res = await fetch('/api/supabase/status');
     if (res.ok) {
