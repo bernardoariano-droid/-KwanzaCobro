@@ -9,13 +9,16 @@
 - Desactiva os gatilhos antigos que copiavam palavras-passe em texto simples para o snapshot.
 - Remove palavras-passe do snapshot existente, sem apagar o snapshot nem os dados relacionais.
 
-## Antes de executar
-1. Faça uma cópia de segurança da base de dados.
-2. No Supabase, abra **Authentication → Users** e crie primeiro a conta do administrador com e-mail e palavra-passe fortes.
-3. Não partilhe a chave `service_role` nem a palavra-passe aqui no ChatGPT.
-4. Execute o ficheiro `supabase-auth-migration.sql` no **SQL Editor** do projecto correcto.
+## Estado actual — NÃO EXECUTAR A MIGRAÇÃO AINDA
+O SQL está preparado, mas a integração do frontend e das rotas Vercel com sessões Auth ainda não foi concluída nem testada. Executar agora irá bloquear o acesso anónimo que o código antigo ainda utiliza e poderá interromper a aplicação. Aguarde pela conclusão e validação do código antes de executar o SQL.
 
-## Depois de executar
+## Preparação necessária antes da execução
+1. Faça uma cópia de segurança da base de dados.
+2. Confirme que está no projecto Supabase correcto.
+3. Não partilhe a chave `service_role` nem a palavra-passe aqui no ChatGPT.
+4. A conta Auth do administrador será criada no passo de activação indicado depois da integração.
+
+## Activação do administrador (apenas depois de executar a migração)
 1. Copie o UUID do administrador em Authentication → Users.
 2. No SQL Editor, execute, substituindo os valores:
    ```sql
