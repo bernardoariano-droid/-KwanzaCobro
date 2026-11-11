@@ -44,7 +44,7 @@ export const SellersView: React.FC<SellersViewProps> = ({
   const [phone, setPhone] = useState('+244 9');
   const [branch, setBranch] = useState('Armazém Central Viana');
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('123');
+  const [password, setPassword] = useState('');
   const [role, setRole] = useState<'vendedor' | 'admin'>('vendedor');
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
@@ -61,17 +61,16 @@ export const SellersView: React.FC<SellersViewProps> = ({
       phone: phone.trim(),
       branch: branch.trim(),
       email: formattedEmail,
-      password: password.trim() || '123',
       role,
       createdAt: new Date().toISOString().slice(0, 10),
     });
 
-    setSuccessMessage(`${name.trim()} - Login: ${formattedEmail} / Senha: ${password.trim() || '123'}`);
+    setSuccessMessage(`${name.trim()} - Conta de acesso solicitada para ${formattedEmail}.`);
     setTimeout(() => setSuccessMessage(null), 6000);
 
     setName('');
     setEmail('');
-    setPassword('123');
+    setPassword('');
     setIsAdding(false);
   };
 
@@ -207,9 +206,11 @@ export const SellersView: React.FC<SellersViewProps> = ({
                 Senha de Acesso Inicial <span className="text-rose-500">*</span>
               </label>
               <input
-                type="text"
+                type="password"
                 required
-                placeholder="Ex: 123 ou outra senha"
+                minLength={8}
+                autoComplete="new-password"
+                placeholder="Mínimo de 8 caracteres"
                 value={password}
                 onChange={e => setPassword(e.target.value)}
                 className="w-full py-2 px-3 text-xs font-mono border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 bg-white"
@@ -327,7 +328,7 @@ export const SellersView: React.FC<SellersViewProps> = ({
                     {isAdmin && (
                       <div className="flex items-center gap-1.5 font-mono text-[11px] text-emerald-800 bg-emerald-50/70 px-2 py-0.5 rounded border border-emerald-200">
                         <KeyRound className="w-3 h-3 text-emerald-600" />
-                        <span>Senha: <strong>{seller.password || '123'}</strong></span>
+                        <span>Autenticação protegida pelo Supabase Auth</span>
                       </div>
                     )}
                   </div>
