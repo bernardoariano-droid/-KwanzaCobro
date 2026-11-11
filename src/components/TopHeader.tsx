@@ -95,7 +95,7 @@ export const TopHeader: React.FC<TopHeaderProps> = ({
               />
             </div>
             <span className="font-bold text-sm text-slate-900 tracking-tight">
-              Kwanza<span className="text-blue-700">Cobro</span>
+              Kwanza<span className="text-emerald-700">Cobro</span>
             </span>
           </div>
 
@@ -138,14 +138,14 @@ export const TopHeader: React.FC<TopHeaderProps> = ({
               }
               className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold rounded-xl border transition-all cursor-pointer shadow-2xs ${
                 isSyncing
-                  ? 'bg-blue-50 text-blue-700 border-blue-300'
+                  ? 'bg-emerald-50 text-emerald-700 border-emerald-300'
                   : isSupabaseConnected
                   ? 'bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border-emerald-200'
                   : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'
               }`}
             >
-              <Cloud className={`w-3.5 h-3.5 ${isSyncing ? 'animate-pulse text-blue-600' : 'text-emerald-600'}`} />
-              <RefreshCw className={`w-3 h-3 ${isSyncing ? 'animate-spin text-blue-600' : 'text-emerald-700 hidden sm:inline'}`} />
+              <Cloud className={`w-3.5 h-3.5 ${isSyncing ? 'animate-pulse text-emerald-600' : 'text-emerald-600'}`} />
+              <RefreshCw className={`w-3 h-3 ${isSyncing ? 'animate-spin text-emerald-600' : 'text-emerald-700 hidden sm:inline'}`} />
               <span className="hidden lg:inline text-[11px] font-bold">
                 {isSyncing ? 'Sincronizando...' : t('nav.sync_cloud', 'Supabase')}
               </span>
@@ -164,7 +164,7 @@ export const TopHeader: React.FC<TopHeaderProps> = ({
               title="Instalar Aplicação KwanzaCobro no dispositivo"
               className="hidden md:inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-700 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl transition-colors cursor-pointer"
             >
-              <Smartphone className="w-3.5 h-3.5 text-blue-600" />
+              <Smartphone className="w-3.5 h-3.5 text-emerald-600" />
               <span>{t('nav.install_apk', 'Instalar APK')}</span>
             </button>
           )}
@@ -172,9 +172,9 @@ export const TopHeader: React.FC<TopHeaderProps> = ({
           {/* Botão Primário: Nova Venda a Crédito */}
           <button
             onClick={onOpenNewDebt}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 active:scale-95 rounded-xl shadow-xs transition-all cursor-pointer whitespace-nowrap"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 active:scale-95 rounded-xl shadow-xs transition-all cursor-pointer whitespace-nowrap"
           >
-            <Plus className="w-4 h-4 text-blue-200" />
+            <Plus className="w-4 h-4 text-emerald-200" />
             <span className="hidden sm:inline">{t('nav.new_sale', 'Nova Venda')}</span>
             <span className="sm:hidden">{t('nav.new_sale', 'Venda')}</span>
           </button>
