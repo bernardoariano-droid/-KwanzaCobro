@@ -41,24 +41,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     }
 
-    // 2. Sincronizar Vendedores
-    if (Array.isArray(sellers) && sellers.length > 0) {
-      try {
-        const sellerRows = sellers.map((s: any) => ({
-          id: String(s.id),
-          name: s.name,
-          phone: s.phone,
-          branch: s.branch || 'Sede',
-          email: s.email || null,
-          role: s.role || 'vendedor',
-          created_at: s.createdAt ? new Date(s.createdAt).toISOString() : new Date().toISOString(),
-        }));
-        await supabase.from('sellers').upsert(sellerRows, { onConflict: 'id' });
-        anySuccess = true;
-      } catch (selErr) {
-        console.warn('Erro ao salvar sellers:', selErr);
-      }
-    }
+    // Os vendedores e respectivas contas Auth são provisionados pelo endpoint administrativo.
 
     // 3. Sincronizar Clientes (incluindo clientes criados em vendas rápidas para satisfazer FK)
     const clientMap = new Map<string, any>();
