@@ -254,6 +254,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   type="button"
                   onClick={onLogout}
                   title="Terminar Sessão"
+                  aria-label="Terminar sessão"
                   className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
                 >
                   <LogOut className="w-4 h-4" />
