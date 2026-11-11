@@ -2,6 +2,10 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { getBackendSupabase } from '../_supabase.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  if (req.method !== 'GET') {
+    return res.status(405).json({ success: false, error: 'Método não permitido.' });
+  }
+
   try {
     const supabase = getBackendSupabase();
 
