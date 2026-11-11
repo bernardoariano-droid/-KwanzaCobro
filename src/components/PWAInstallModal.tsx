@@ -67,7 +67,7 @@ export const PWAInstallModal: React.FC<PWAInstallModalProps> = ({ isOpen, onClos
     <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/80 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4">
       <div className="bg-white rounded-2xl max-w-xl w-full border border-slate-200 shadow-2xl overflow-hidden my-4 flex flex-col">
         {/* Top Header com Azul Institucional e Logomarca Oficial */}
-        <div className="px-6 py-5 bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-950 text-white flex items-center justify-between shrink-0">
+        <div className="px-6 py-5 bg-gradient-to-r from-emerald-900 via-emerald-800 to-green-950 text-white flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3.5">
             <div className="w-12 h-12 rounded-xl bg-white p-1 flex items-center justify-center shadow-xs shrink-0 overflow-hidden border border-white/20">
               <img 
@@ -83,7 +83,7 @@ export const PWAInstallModal: React.FC<PWAInstallModalProps> = ({ isOpen, onClos
                   APK & PWA
                 </span>
               </div>
-              <p className="text-xs text-blue-100 mt-0.5">
+              <p className="text-xs text-emerald-100 mt-0.5">
                 Compatível com Telemóveis Android, Tablets e Computadores
               </p>
             </div>
@@ -91,7 +91,7 @@ export const PWAInstallModal: React.FC<PWAInstallModalProps> = ({ isOpen, onClos
 
           <button
             onClick={onClose}
-            className="text-blue-200 hover:text-white p-1 rounded-lg transition-colors cursor-pointer"
+            className="text-emerald-200 hover:text-white p-1 rounded-lg transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
@@ -103,7 +103,7 @@ export const PWAInstallModal: React.FC<PWAInstallModalProps> = ({ isOpen, onClos
             onClick={() => setActiveTab('android')}
             className={`flex-1 py-2 px-3 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-2 cursor-pointer ${
               activeTab === 'android'
-                ? 'bg-blue-600 text-white shadow-xs'
+                ? 'bg-emerald-600 text-white shadow-xs'
                 : 'text-slate-600 hover:bg-slate-200/70'
             }`}
           >
@@ -115,7 +115,7 @@ export const PWAInstallModal: React.FC<PWAInstallModalProps> = ({ isOpen, onClos
             onClick={() => setActiveTab('ios')}
             className={`flex-1 py-2 px-3 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-2 cursor-pointer ${
               activeTab === 'ios'
-                ? 'bg-blue-600 text-white shadow-xs'
+                ? 'bg-emerald-600 text-white shadow-xs'
                 : 'text-slate-600 hover:bg-slate-200/70'
             }`}
           >
@@ -127,7 +127,7 @@ export const PWAInstallModal: React.FC<PWAInstallModalProps> = ({ isOpen, onClos
             onClick={() => setActiveTab('desktop')}
             className={`flex-1 py-2 px-3 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-2 cursor-pointer ${
               activeTab === 'desktop'
-                ? 'bg-blue-600 text-white shadow-xs'
+                ? 'bg-emerald-600 text-white shadow-xs'
                 : 'text-slate-600 hover:bg-slate-200/70'
             }`}
           >
@@ -159,9 +159,9 @@ export const PWAInstallModal: React.FC<PWAInstallModalProps> = ({ isOpen, onClos
           {/* TAB 1: ANDROID */}
           {activeTab === 'android' && (
             <div className="space-y-4">
-              <div className="p-4 bg-blue-50/70 border border-blue-200 rounded-xl space-y-2 text-xs">
-                <div className="flex items-center gap-2 text-blue-900 font-bold text-sm">
-                  <Sparkles className="w-4 h-4 text-blue-600" />
+              <div className="p-4 bg-emerald-50/70 border border-emerald-200 rounded-xl space-y-2 text-xs">
+                <div className="flex items-center gap-2 text-emerald-900 font-bold text-sm">
+                  <Sparkles className="w-4 h-4 text-emerald-600" />
                   <span>Aplicação Web Progressiva (Web APK)</span>
                 </div>
                 <p className="text-slate-700 leading-relaxed">
@@ -172,7 +172,7 @@ export const PWAInstallModal: React.FC<PWAInstallModalProps> = ({ isOpen, onClos
               {isInstallable ? (
                 <button
                   onClick={handleInstallClick}
-                  className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 active:scale-98 text-white font-bold text-sm rounded-xl shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer"
+                  className="w-full py-3 px-4 bg-emerald-600 hover:bg-emerald-700 active:scale-98 text-white font-bold text-sm rounded-xl shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer"
                 >
                   <Download className="w-4 h-4 text-white" />
                   <span>Instalar no Android (1 Clique)</span>
@@ -214,16 +214,16 @@ export const PWAInstallModal: React.FC<PWAInstallModalProps> = ({ isOpen, onClos
                 </span>
                 <div className="space-y-2.5 text-slate-700">
                   <div className="flex items-start gap-2.5">
-                    <div className="w-5 h-5 rounded-full bg-blue-100 text-blue-800 font-bold flex items-center justify-center shrink-0 text-xs">
+                    <div className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-800 font-bold flex items-center justify-center shrink-0 text-xs">
                       1
                     </div>
                     <p>
-                      No navegador <strong>Safari</strong> do iPhone, toque no botão <strong>Partilhar <Share2 className="w-3.5 h-3.5 inline text-blue-600" /></strong> (ícone com quadrado e seta para cima).
+                      No navegador <strong>Safari</strong> do iPhone, toque no botão <strong>Partilhar <Share2 className="w-3.5 h-3.5 inline text-emerald-600" /></strong> (ícone com quadrado e seta para cima).
                     </p>
                   </div>
 
                   <div className="flex items-start gap-2.5">
-                    <div className="w-5 h-5 rounded-full bg-blue-100 text-blue-800 font-bold flex items-center justify-center shrink-0 text-xs">
+                    <div className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-800 font-bold flex items-center justify-center shrink-0 text-xs">
                       2
                     </div>
                     <p>
@@ -232,7 +232,7 @@ export const PWAInstallModal: React.FC<PWAInstallModalProps> = ({ isOpen, onClos
                   </div>
 
                   <div className="flex items-start gap-2.5">
-                    <div className="w-5 h-5 rounded-full bg-blue-100 text-blue-800 font-bold flex items-center justify-center shrink-0 text-xs">
+                    <div className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-800 font-bold flex items-center justify-center shrink-0 text-xs">
                       3
                     </div>
                     <p>
@@ -247,8 +247,8 @@ export const PWAInstallModal: React.FC<PWAInstallModalProps> = ({ isOpen, onClos
           {/* TAB 3: DESKTOP / COMPUTADOR */}
           {activeTab === 'desktop' && (
             <div className="space-y-4 text-xs">
-              <div className="p-4 bg-blue-50/60 border border-blue-200 rounded-xl space-y-2">
-                <span className="font-bold text-blue-950 block text-sm">
+              <div className="p-4 bg-emerald-50/60 border border-emerald-200 rounded-xl space-y-2">
+                <span className="font-bold text-emerald-950 block text-sm">
                   Aplicação para Computador (Windows, Mac ou Linux)
                 </span>
                 <p className="text-slate-700">
@@ -259,7 +259,7 @@ export const PWAInstallModal: React.FC<PWAInstallModalProps> = ({ isOpen, onClos
               {isInstallable ? (
                 <button
                   onClick={handleInstallClick}
-                  className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm rounded-xl shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer"
+                  className="w-full py-3 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm rounded-xl shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer"
                 >
                   <Download className="w-4 h-4 text-white" />
                   <span>Instalar no Computador Agora</span>
@@ -270,7 +270,7 @@ export const PWAInstallModal: React.FC<PWAInstallModalProps> = ({ isOpen, onClos
                     No Chrome, Edge ou Brave:
                   </span>
                   <p className="text-slate-600 leading-relaxed">
-                    Clique no ícone de instalação <Download className="w-3.5 h-3.5 inline text-blue-700" /> na barra de endereços do navegador (ao lado da estrela de favoritos) e confirme <strong>"Instalar KwanzaCobro"</strong>.
+                    Clique no ícone de instalação <Download className="w-3.5 h-3.5 inline text-emerald-700" /> na barra de endereços do navegador (ao lado da estrela de favoritos) e confirme <strong>"Instalar KwanzaCobro"</strong>.
                   </p>
                 </div>
               )}
