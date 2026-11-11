@@ -1,19 +1,5 @@
 import React, { useState } from 'react';
-import { 
-  ShieldCheck, 
-  Lock, 
-  Mail, 
-  User, 
-  ArrowRight, 
-  CheckCircle2, 
-  AlertCircle,
-  Building2,
-  UserCheck,
-  Eye,
-  EyeOff,
-  Sparkles,
-  Globe
-} from 'lucide-react';
+import { Lock, Mail, ArrowRight, AlertCircle, Eye, EyeOff } from 'lucide-react';
 import { AuthUser } from '../types/debt';
 import { supabase, SUPABASE_CONFIGURED } from '../lib/supabase';
 import { useLanguage } from '../i18n/LanguageContext';
