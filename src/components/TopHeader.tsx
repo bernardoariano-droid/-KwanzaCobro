@@ -78,6 +78,8 @@ export const TopHeader: React.FC<TopHeaderProps> = ({
         {/* Esquerda: Botão Menu Mobile & Título do Módulo Ativo */}
         <div className="flex items-center gap-3">
           <button
+            type="button"
+            aria-label="Abrir menu de navegação"
             onClick={onOpenMobileMenu}
             className="lg:hidden p-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
             title="Abrir Menu de Navegação"
@@ -164,7 +166,8 @@ export const TopHeader: React.FC<TopHeaderProps> = ({
             <button
               type="button"
               onClick={onOpenInstallPWA}
-              title="Instalar Aplicação KwanzaCobro no dispositivo"
+              title="Instalar NEUROJUS no dispositivo"
+              aria-label="Instalar NEUROJUS no dispositivo"
               className="hidden md:inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-700 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl transition-colors cursor-pointer"
             >
               <Smartphone className="w-3.5 h-3.5 text-emerald-600" />
