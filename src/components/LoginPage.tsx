@@ -143,21 +143,21 @@ export const LoginPage: React.FC<LoginPageProps> = ({ sellers, company, onLoginS
         {/* Seletor de Idiomas no Topo da Página de Login */}
         <div className="flex items-center justify-between mb-3 px-1">
           <span className="text-xs font-semibold text-emerald-200/90">
-            KwanzaCobro · Gestão de Dívidas
+            NEUROJUS · Gestão de Crédito Comercial
           </span>
           <LanguageSelector />
         </div>
 
         {/* Brand Card Top */}
         <div className="bg-white rounded-3xl shadow-2xl border border-emerald-500/30 overflow-hidden">
-          {/* Header com Emblema KwanzaCobro em Azul Institucional */}
+          {/* Identidade visual NEUROJUS */}
           <div className="p-6 sm:p-8 bg-gradient-to-b from-emerald-50/70 to-white border-b border-slate-100 text-center">
             <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-600 to-emerald-900 text-white font-mono font-black text-2xl shadow-md mb-3">
-              KC
+              NJ
             </div>
 
             <h1 className="text-2xl font-black tracking-tight text-slate-900">
-              Kwanza<span className="text-emerald-700">Cobro</span>
+              <span className="text-emerald-800">NEURO</span><span className="text-emerald-600">JUS</span>
             </h1>
             <p className="text-xs text-slate-500 font-semibold uppercase tracking-wider mt-1">
               Gestão e Controlo de Dívidas Empresariais
@@ -177,7 +177,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ sellers, company, onLoginS
             )}
 
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1.5">
+              <label htmlFor="neurojus-identifier" className="block text-xs font-bold text-slate-700 mb-1.5">
                 {t('login.ident_label', 'E-mail ou Utilizador de Acesso')}
               </label>
               <div className="relative">
@@ -185,6 +185,9 @@ export const LoginPage: React.FC<LoginPageProps> = ({ sellers, company, onLoginS
                   <Mail className="w-4 h-4" />
                 </div>
                 <input
+                  id="neurojus-identifier"
+                  name="identifier"
+                  autoComplete="username"
                   type="text"
                   required
                   placeholder="admin@kwanzacobro.ao ou vendedor"
@@ -197,7 +200,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ sellers, company, onLoginS
 
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <label className="block text-xs font-bold text-slate-700">
+                <label htmlFor="neurojus-password" className="block text-xs font-bold text-slate-700">
                   {t('login.pass_label', 'Senha de Acesso')}
                 </label>
               </div>
@@ -206,6 +209,9 @@ export const LoginPage: React.FC<LoginPageProps> = ({ sellers, company, onLoginS
                   <Lock className="w-4 h-4" />
                 </div>
                 <input
+                  id="neurojus-password"
+                  name="password"
+                  autoComplete="current-password"
                   type={showPassword ? 'text' : 'password'}
                   required
                   placeholder="••••••••"
@@ -216,6 +222,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ sellers, company, onLoginS
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
+                  aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
                   className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 cursor-pointer"
                 >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -312,7 +319,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ sellers, company, onLoginS
 
         {/* Footer */}
         <div className="mt-4 text-center text-xs text-emerald-200/80">
-          <p>© 2026 KwanzaCobro · Angola · Gestão de Dívidas Empresariais</p>
+          <p>© 2026 NEUROJUS · Angola · Gestão de Crédito Comercial</p>
         </div>
       </div>
     </div>
