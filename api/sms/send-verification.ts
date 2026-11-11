@@ -17,6 +17,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     const auth = await requireIdentity(req, res);
     if (!auth) return;
+    if (!process.env.SESSION_SECRET) return res.status(503).json({ success: false, error: 'O serviço de confirmação ainda não está configurado com SESSION_SECRET.' });
     const { 
       customerName, 
       storeName, 
