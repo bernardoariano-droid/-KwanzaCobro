@@ -82,12 +82,21 @@ revoke select (senha, password), insert (senha, password), update (senha, passwo
 -- Sem acesso anónimo. O acesso autenticado continua sujeito às políticas abaixo.
 revoke all on public.user_profiles, public.kwanzacobro_sync, public.company_settings,
   public.sellers, public.clients, public.debts, public.debt_items, public.payments,
-  public.audit_trail from anon;
+  public.audit_trail from anon, authenticated;
 
 grant select on public.user_profiles to authenticated;
-grant select, insert, update, delete on public.kwanzacobro_sync, public.company_settings,
-  public.sellers, public.clients, public.debts, public.debt_items, public.payments,
-  public.audit_trail to authenticated;
+grant select, insert, update, delete on public.kwanzacobro_sync,
+  public.clients, public.debts, public.debt_items, public.payments, public.audit_trail to authenticated;
+
+-- Conceder apenas colunas não sensíveis nas tabelas que ainda contêm credenciais antigas.
+grant select (id,name,phone,branch,email,role,created_at) on public.sellers to authenticated;
+grant delete on public.sellers to authenticated;
+grant select (id,name,nif,phone,email,address,city,bank_name,iban,express_phone,currency,logo_url,penalty_per_day_rate,days_before_due_alert,auto_alert_notifications,updated_at)
+  on public.company_settings to authenticated;
+grant insert (id,name,nif,phone,email,address,city,bank_name,iban,express_phone,currency,logo_url,penalty_per_day_rate,days_before_due_alert,auto_alert_notifications,updated_at)
+  on public.company_settings to authenticated;
+grant update (name,nif,phone,email,address,city,bank_name,iban,express_phone,currency,logo_url,penalty_per_day_rate,days_before_due_alert,auto_alert_notifications,updated_at)
+  on public.company_settings to authenticated;
 
 create policy "profile_read_self_or_admin" on public.user_profiles
 for select to authenticated
