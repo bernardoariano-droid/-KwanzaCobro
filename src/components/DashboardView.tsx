@@ -204,7 +204,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
   return (
     <div className="space-y-6 pb-20 animate-fade-in">
-      {/* 1. Header do Painel Principal KwanzaCobro com Azul Institucional */}
+      {/* 1. Cabeçalho principal NEUROJUS */}
       <div className="bg-gradient-to-r from-emerald-900 via-emerald-800 to-green-950 text-white rounded-3xl p-6 sm:p-8 shadow-sm relative overflow-hidden">
         <div className="absolute top-0 right-0 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
 
@@ -212,7 +212,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           <div className="space-y-2">
             <div className="flex items-center gap-2">
               <span className="px-2.5 py-0.5 text-[11px] font-bold bg-emerald-500/30 text-emerald-200 border border-emerald-400/30 rounded-full font-mono uppercase tracking-wider">
-                KwanzaCobro · {company.currency || 'AOA'}
+                NEUROJUS · {company.currency || 'AOA'}
               </span>
               {isSeller ? (
                 <span className="px-2 py-0.5 text-[10px] font-bold bg-amber-400 text-slate-950 rounded-full uppercase tracking-wider">
@@ -499,13 +499,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 style={{ width: `${recoveryRate}%` }}
               />
               <div 
-                className="bg-emerald-600 h-full transition-all duration-300"
+                className="bg-slate-300 h-full transition-all duration-300"
                 style={{ width: `${100 - recoveryRate}%` }}
               />
             </div>
             <div className="flex items-center justify-between text-[11px] text-slate-500 font-mono">
               <span className="text-emerald-700 font-bold">✓ {settledDebts.length} faturas quitadas</span>
-              <span className="text-emerald-700 font-bold">• {effectiveDebts.length - settledDebts.length} em cobrança</span>
+              <span className="text-slate-600 font-bold">• {effectiveDebts.length - settledDebts.length} em cobrança</span>
             </div>
           </div>
 
