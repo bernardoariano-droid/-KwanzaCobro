@@ -127,7 +127,15 @@ for delete to authenticated using (public.neurojus_is_admin());
 
 create policy "clients_read_owner_or_admin" on public.clients
 for select to authenticated
-using (public.neurojus_is_admin() or created_by_seller_id = public.neurojus_current_seller_id());
+using (
+  public.neurojus_is_admin()
+  or created_by_seller_id = public.neurojus_current_seller_id()
+  or exists (
+    select 1 from public.debts d
+    where d.client_id = clients.id
+      and d.seller_id = public.neurojus_current_seller_id()
+  )
+);
 create policy "clients_insert_owner_or_admin" on public.clients
 for insert to authenticated
 with check (public.neurojus_is_admin() or created_by_seller_id = public.neurojus_current_seller_id());
