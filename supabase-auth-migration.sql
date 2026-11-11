@@ -74,6 +74,11 @@ begin
   end loop;
 end $$;
 
+-- As credenciais antigas em texto simples deixam de ser consultáveis mesmo por utilizadores autenticados.
+-- As colunas são preservadas nesta fase, mas sem privilégios de leitura/escrita via API.
+revoke all (password) on public.sellers from anon, authenticated;
+revoke all (senha, password) on public.company_settings from anon, authenticated;
+
 -- Sem acesso anónimo. O acesso autenticado continua sujeito às políticas abaixo.
 revoke all on public.user_profiles, public.kwanzacobro_sync, public.company_settings,
   public.sellers, public.clients, public.debts, public.debt_items, public.payments,
