@@ -48,6 +48,7 @@ import { OfflineIndicator } from './components/OfflineIndicator';
 import { downloadDebtReceiptPDF } from './utils/pdfGenerator';
 import { getRemainingBalance, getDaysDiff, formatKwanza } from './utils/formatters';
 import { useLanguage } from './i18n/LanguageContext';
+import { supabase } from './lib/supabase';
 import { 
   pullFromSupabase, 
   syncToSupabase, 
@@ -70,32 +71,72 @@ const STORAGE_KEY_AUTH = 'kwanzacobro_auth_session_v2';
 
 export default function App() {
   const { t } = useLanguage();
-  // Estado de Autenticação com Persistência de Sessão
-  const [currentUser, setCurrentUser] = useState<AuthUser | null>(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY_AUTH);
-      return saved ? JSON.parse(saved) : null;
-    } catch {
-      return null;
+  // A sessão real é gerida pelo Supabase Auth; nunca confiar em utilizador guardado no localStorage.
+  const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
+  const [isAuthLoading, setIsAuthLoading] = useState(true);
+
+  const resolveAuthUser = async (authUser: any): Promise<AuthUser | null> => {
+    if (!authUser?.id) return null;
+    const { data: profile, error } = await supabase
+      .from('user_profiles')
+      .select('user_id,seller_id,full_name,role')
+      .eq('user_id', authUser.id)
+      .maybeSingle();
+    if (error || !profile || !['admin', 'vendedor'].includes(profile.role)) return null;
+    let seller: any = null;
+    if (profile.seller_id) {
+      const { data } = await supabase.from('sellers')
+        .select('id,name,email,phone,branch').eq('id', profile.seller_id).maybeSingle();
+      seller = data;
     }
-  });
+    return {
+      id: seller?.id || authUser.id,
+      name: profile.full_name || seller?.name || authUser.email || 'Utilizador',
+      email: authUser.email || '',
+      phone: seller?.phone || '',
+      role: profile.role,
+      branch: seller?.branch || '',
+    };
+  };
+
+  useEffect(() => {
+    let active = true;
+    const initialise = async () => {
+      const { data } = await supabase.auth.getSession();
+      const resolved = data.session ? await resolveAuthUser(data.session.user) : null;
+      if (active) {
+        if (data.session && !resolved) await supabase.auth.signOut();
+        setCurrentUser(resolved);
+        setIsAuthLoading(false);
+      }
+    };
+    initialise();
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!active) return;
+      if (!session) {
+        setCurrentUser(null);
+        setIsAuthLoading(false);
+        return;
+      }
+      // Evitar consultas Supabase dentro do callback síncrono do evento Auth.
+      setTimeout(async () => {
+        const resolved = await resolveAuthUser(session.user);
+        if (!active) return;
+        if (!resolved) await supabase.auth.signOut();
+        setCurrentUser(resolved);
+        setIsAuthLoading(false);
+      }, 0);
+    });
+    return () => { active = false; listener.subscription.unsubscribe(); };
+  }, []);
 
   const handleLoginSuccess = (user: AuthUser) => {
     setCurrentUser(user);
-    try {
-      localStorage.setItem(STORAGE_KEY_AUTH, JSON.stringify(user));
-    } catch (e) {
-      console.error('Erro ao guardar sessão de autenticação', e);
-    }
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
     setCurrentUser(null);
-    try {
-      localStorage.removeItem(STORAGE_KEY_AUTH);
-    } catch (e) {
-      console.error('Erro ao terminar sessão', e);
-    }
     setActiveTab('dashboard');
   };
 
@@ -155,6 +196,7 @@ export default function App() {
 
   // Carregar dados guardados no Supabase e Servidor ao iniciar a aplicação
   useEffect(() => {
+    if (!currentUser) return;
     let isMounted = true;
 
     const loadCloudData = async () => {
@@ -247,7 +289,7 @@ export default function App() {
       isMounted = false;
       unsubscribe();
     };
-  }, []);
+  }, [currentUser?.id]);
 
   // Sincronização manual acionada pelo utilizador
   const handleManualSyncNow = async () => {
@@ -261,9 +303,10 @@ export default function App() {
 
       // 2. Também notificar endpoint serverless
       try {
-        await fetch('/api/supabase/sync', {
+        const { data: sessionData } = await supabase.auth.getSession();
+        if (currentUser?.role === 'admin' && sessionData.session) await fetch('/api/supabase/sync', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${sessionData.session.access_token}` },
           body: JSON.stringify({ debts, clients, sellers, company }),
         });
       } catch {}
@@ -339,12 +382,13 @@ export default function App() {
 
       // 2. Sincronização Supabase (Nuvem PostgreSQL)
       try {
-        const supRes = await fetch('/api/supabase/sync', {
+        const { data: sessionData } = await supabase.auth.getSession();
+        const supRes = currentUser?.role === 'admin' && sessionData.session ? await fetch('/api/supabase/sync', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${sessionData.session.access_token}` },
           body: JSON.stringify({ debts, clients, sellers, company }),
-        });
-        if (supRes.ok) {
+        }) : null;
+        if (supRes?.ok) {
           const supJson = await supRes.json();
           if (supJson.synced) {
             setIsSupabaseSynced(true);
@@ -356,7 +400,7 @@ export default function App() {
     }, 600);
 
     return () => clearTimeout(timer);
-  }, [debts, clients, sellers, company]);
+  }, [debts, clients, sellers, company, currentUser?.id, currentUser?.role]);
 
   // Navegação
   const [activeTab, setActiveTab] = useState<ActiveTab>('dashboard');
@@ -696,6 +740,10 @@ export default function App() {
   };
 
   // Se não estiver autenticado, exibe a Página de Login Corporativa da NEUROJUS
+  if (isAuthLoading) {
+    return <div className="min-h-screen flex items-center justify-center text-sm text-slate-600">A validar sessão segura...</div>;
+  }
+
   if (!currentUser) {
     return (
       <LoginPage
