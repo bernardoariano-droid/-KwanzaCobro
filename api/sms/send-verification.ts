@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import crypto from 'crypto';
+import { requireIdentity } from '../_auth.js';
 import { 
   SMSSessionData, 
   globalSmsSessions, 
@@ -14,6 +15,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
+    const auth = await requireIdentity(req, res);
+    if (!auth) return;
     const { 
       customerName, 
       storeName, 
@@ -130,11 +133,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       attemptsLeft: 5,
       providerConfigured,
       smsSent,
-      verificationCode: rawCode,
       statusMessage: providerConfigured 
         ? (smsSent ? 'SMS enviado com sucesso para o cliente.' : 'Falha no envio da operadora SMS.')
         : 'Serviço de SMS não configurado (Envio manual ou direto disponível)',
-      sandboxTestCode: rawCode,
     });
   } catch (err: any) {
     console.error('Erro ao gerar código SMS:', err);
