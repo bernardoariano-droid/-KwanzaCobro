@@ -10,7 +10,7 @@
 - Remove palavras-passe do snapshot existente, sem apagar o snapshot nem os dados relacionais.
 
 ## Estado do código no ramo de trabalho
-O formulário de login já usa `supabase.auth.signInWithPassword`, a recuperação usa `resetPasswordForEmail`, a aplicação restaura e termina sessões Supabase Auth, e o perfil `user_profiles` determina a função do utilizador. As rotas `/api/supabase/pull`, `/api/supabase/sync`, `/api/data` e `/api/supabase/status` validam o JWT e consultam o perfil; a sincronização integral é reservada ao administrador. O endpoint `/api/admin/users` provisiona contas Auth e registos de vendedor apenas após validar um administrador.
+O formulário de login já usa `supabase.auth.signInWithPassword`, a recuperação usa `resetPasswordForEmail`, a aplicação restaura e termina sessões Supabase Auth, e o perfil `user_profiles` determina a função do utilizador. As rotas `/api/supabase/pull`, `/api/supabase/sync`, `/api/data` e `/api/supabase/status` validam o JWT e consultam o perfil; a sincronização integral é reservada ao administrador. O endpoint `/api/admin/users` provisiona contas Auth e registos de vendedor apenas após validar um administrador. O formulário de Funcionários exige e-mail real e senha inicial com pelo menos 8 caracteres; a senha é enviada apenas ao endpoint seguro e nunca é gravada na tabela `sellers`.
 
 **Ainda não executar o SQL nem publicar como produção.** O código está no ramo de trabalho, mas não foi possível executar build, testes automatizados ou testes contra o projecto Supabase real. Primeiro é necessário rever e aplicar a migração no Supabase, configurar as variáveis Vercel e testar com contas reais de administrador e vendedor.
 
@@ -29,7 +29,7 @@ O formulário de login já usa `supabase.auth.signInWithPassword`, a recuperaç�
    values ('UUID-REAL-DO-ADMIN', 'Administrador Geral', 'admin');
    ```
 3. Confirme que a linha aparece em `public.user_profiles` com `role = 'admin'`.
-4. Crie contas Auth dos vendedores com o mesmo e-mail que consta em `public.sellers.email`. A migração associa automaticamente esses utilizadores aos registos existentes como vendedor.
+4. Para os vendedores antigos, crie/convide as contas Auth usando o mesmo e-mail que consta em `public.sellers.email`; a migração associa automaticamente esses utilizadores como vendedor. Os novos funcionários devem ser criados pelo formulário **Funcionários** dentro da aplicação, já depois de o administrador iniciar sessão.
 5. Configure SMTP em Authentication → SMTP Settings para recuperação de palavra-passe.
 
 ## Variáveis de ambiente
