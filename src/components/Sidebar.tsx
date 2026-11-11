@@ -222,8 +222,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
             {onOpenInstallPWA && (
               <button
+                type="button"
                 onClick={onOpenInstallPWA}
-                title="Instalar App / APK KwanzaCobro"
+                title="Instalar NEUROJUS no dispositivo"
+                aria-label="Instalar NEUROJUS no dispositivo"
                 className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-semibold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200/80 rounded-xl transition-colors cursor-pointer"
               >
                 <Smartphone className="w-3.5 h-3.5 text-emerald-600" />
