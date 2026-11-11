@@ -458,10 +458,10 @@ CREATE TRIGGER trigger_sync_company_to_snapshot AFTER INSERT OR UPDATE OR DELETE
       <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-xs space-y-4">
         <div className="flex items-center justify-between border-b border-slate-100 pb-3">
           <div className="flex items-center gap-2 text-sm font-bold text-slate-900">
-            <Globe className="w-4 h-4 text-blue-700" />
+            <Globe className="w-4 h-4 text-emerald-700" />
             <span>{t('settings.language_pref', 'Preferência de Idioma do Sistema')}</span>
           </div>
-          <span className="text-[11px] font-semibold text-blue-800 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-200">
+          <span className="text-[11px] font-semibold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
             5 Idiomas Disponíveis
           </span>
         </div>
@@ -480,7 +480,7 @@ CREATE TRIGGER trigger_sync_company_to_snapshot AFTER INSERT OR UPDATE OR DELETE
                 onClick={() => setLanguage(opt.code)}
                 className={`p-3 rounded-xl border text-center transition-all cursor-pointer ${
                   isSelected
-                    ? 'border-blue-600 bg-blue-50/90 text-blue-950 font-bold ring-2 ring-blue-500/30 shadow-xs'
+                    ? 'border-emerald-600 bg-emerald-50/90 text-emerald-950 font-bold ring-2 ring-emerald-500/30 shadow-xs'
                     : 'border-slate-200 hover:border-slate-300 bg-slate-50/50 hover:bg-slate-50 text-slate-700'
                 }`}
               >
@@ -798,13 +798,13 @@ CREATE TRIGGER trigger_sync_company_to_snapshot AFTER INSERT OR UPDATE OR DELETE
             supabaseFeedback.type === 'success' 
               ? 'bg-emerald-50 border-emerald-200 text-emerald-900'
               : supabaseFeedback.type === 'info'
-              ? 'bg-blue-50 border-blue-200 text-blue-900'
+              ? 'bg-emerald-50 border-emerald-200 text-emerald-900'
               : 'bg-rose-50 border-rose-200 text-rose-900'
           }`}>
             {supabaseFeedback.type === 'success' ? (
               <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
             ) : supabaseFeedback.type === 'info' ? (
-              <AlertCircle className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
+              <AlertCircle className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
             ) : (
               <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
             )}
@@ -851,7 +851,7 @@ CREATE TRIGGER trigger_sync_company_to_snapshot AFTER INSERT OR UPDATE OR DELETE
               <button
                 type="button"
                 onClick={() => setShowApiKey(!showApiKey)}
-                className="text-[11px] text-blue-700 hover:text-blue-800 font-semibold flex items-center gap-1"
+                className="text-[11px] text-emerald-700 hover:text-emerald-800 font-semibold flex items-center gap-1"
               >
                 {showApiKey ? (
                   <>
@@ -896,7 +896,7 @@ CREATE TRIGGER trigger_sync_company_to_snapshot AFTER INSERT OR UPDATE OR DELETE
             disabled={isTestingSupabase}
             className="px-4 py-2 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors flex items-center gap-2 cursor-pointer disabled:opacity-60"
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${isTestingSupabase ? 'animate-spin text-blue-600' : ''}`} />
+            <RefreshCw className={`w-3.5 h-3.5 ${isTestingSupabase ? 'animate-spin text-emerald-600' : ''}`} />
             <span>{isTestingSupabase ? 'Testando Conexão...' : 'Testar Conexão Supabase'}</span>
           </button>
 
@@ -914,7 +914,7 @@ CREATE TRIGGER trigger_sync_company_to_snapshot AFTER INSERT OR UPDATE OR DELETE
             type="button"
             onClick={handlePullSupabase}
             disabled={isPullingSupabase}
-            className="px-4 py-2 text-xs font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg transition-colors flex items-center gap-2 cursor-pointer disabled:opacity-60"
+            className="px-4 py-2 text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-lg transition-colors flex items-center gap-2 cursor-pointer disabled:opacity-60"
           >
             <Download className={`w-3.5 h-3.5 ${isPullingSupabase ? 'animate-spin' : ''}`} />
             <span>{isPullingSupabase ? 'Importando...' : 'Importar da Nuvem Supabase'}</span>
@@ -970,7 +970,7 @@ CREATE TRIGGER trigger_sync_company_to_snapshot AFTER INSERT OR UPDATE OR DELETE
 
           <div className="bg-slate-900 text-emerald-400 p-3 rounded-lg font-mono text-[11px] leading-relaxed overflow-x-auto shadow-inner select-all border border-slate-800">
             <span className="text-slate-400">-- 1. Adicionar a coluna de senha na tabela company_settings</span><br />
-            <span className="text-amber-300 font-bold">ALTER TABLE</span> public.company_settings <span className="text-amber-300 font-bold">ADD COLUMN IF NOT EXISTS</span> senha <span className="text-blue-300">TEXT DEFAULT</span> <span className="text-emerald-300">&apos;admin&apos;</span>;<br /><br />
+            <span className="text-amber-300 font-bold">ALTER TABLE</span> public.company_settings <span className="text-amber-300 font-bold">ADD COLUMN IF NOT EXISTS</span> senha <span className="text-emerald-300">TEXT DEFAULT</span> <span className="text-emerald-300">&apos;admin&apos;</span>;<br /><br />
             <span className="text-slate-400">-- 2. Definir ou atualizar a senha da sua empresa</span><br />
             <span className="text-amber-300 font-bold">UPDATE</span> public.company_settings <span className="text-amber-300 font-bold">SET</span> senha = <span className="text-emerald-300">&apos;admin&apos;</span> <span className="text-amber-300 font-bold">WHERE</span> id = <span className="text-emerald-300">&apos;default_company&apos;</span>;
           </div>
@@ -984,17 +984,17 @@ CREATE TRIGGER trigger_sync_company_to_snapshot AFTER INSERT OR UPDATE OR DELETE
         {/* ======================================================== */}
         {/* CARD: RELACIONAMENTOS & SINCRONIZAÇÃO KWANZACOBRO_SYNC  */}
         {/* ======================================================== */}
-        <div className="p-4 bg-gradient-to-r from-blue-500/10 via-blue-50 to-indigo-50 border border-blue-300 rounded-xl space-y-3">
+        <div className="p-4 bg-gradient-to-r from-emerald-500/10 via-emerald-50 to-green-50 border border-emerald-300 rounded-xl space-y-3">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-lg bg-blue-600 text-white flex items-center justify-center font-bold text-xs shadow-2xs">
+              <div className="w-7 h-7 rounded-lg bg-emerald-600 text-white flex items-center justify-center font-bold text-xs shadow-2xs">
                 FK
               </div>
               <div>
-                <h4 className="text-xs font-bold text-blue-950">
+                <h4 className="text-xs font-bold text-emerald-950">
                   Script SQL: Correção de Relacionamentos & Ligação da Tabela kwanzacobro_sync
                 </h4>
-                <p className="text-[11px] text-blue-800">
+                <p className="text-[11px] text-emerald-800">
                   Liga as tabelas <strong>debts, clients, sellers, payments, debt_items</strong> e sincroniza automaticamente com <strong>kwanzacobro_sync</strong>.
                 </p>
               </div>
@@ -1002,7 +1002,7 @@ CREATE TRIGGER trigger_sync_company_to_snapshot AFTER INSERT OR UPDATE OR DELETE
             <button
               type="button"
               onClick={handleCopyRelationshipSql}
-              className="px-3 py-1.5 text-xs font-bold text-blue-900 bg-white border border-blue-300 hover:bg-blue-100 rounded-lg transition-all shadow-2xs flex items-center gap-1.5 cursor-pointer whitespace-nowrap self-start sm:self-auto"
+              className="px-3 py-1.5 text-xs font-bold text-emerald-900 bg-white border border-emerald-300 hover:bg-emerald-100 rounded-lg transition-all shadow-2xs flex items-center gap-1.5 cursor-pointer whitespace-nowrap self-start sm:self-auto"
             >
               {isCopiedRelationshipSql ? (
                 <>
@@ -1011,14 +1011,14 @@ CREATE TRIGGER trigger_sync_company_to_snapshot AFTER INSERT OR UPDATE OR DELETE
                 </>
               ) : (
                 <>
-                  <Copy className="w-3.5 h-3.5 text-blue-700" />
+                  <Copy className="w-3.5 h-3.5 text-emerald-700" />
                   <span>Copiar Script de Relacionamentos</span>
                 </>
               )}
             </button>
           </div>
 
-          <div className="bg-slate-900 text-blue-300 p-3 rounded-lg font-mono text-[11px] leading-relaxed overflow-x-auto max-h-48 shadow-inner select-all border border-slate-800">
+          <div className="bg-slate-900 text-emerald-300 p-3 rounded-lg font-mono text-[11px] leading-relaxed overflow-x-auto max-h-48 shadow-inner select-all border border-slate-800">
             <span className="text-slate-400">-- 1. View clientes para compatibilidade total</span><br />
             <span className="text-amber-300 font-bold">CREATE OR REPLACE VIEW</span> public.clientes <span className="text-amber-300 font-bold">AS SELECT * FROM</span> public.clients;<br /><br />
             <span className="text-slate-400">-- 2. Foreign Keys (clients -&gt; sellers, debts -&gt; clients, debts -&gt; sellers, debt_items -&gt; debts, payments -&gt; debts)</span><br />
@@ -1026,7 +1026,7 @@ CREATE TRIGGER trigger_sync_company_to_snapshot AFTER INSERT OR UPDATE OR DELETE
             <span className="text-slate-400">-- 4. Triggers automáticos que mantêm kwanzacobro_sync sempre atualizada em tempo real!</span>
           </div>
 
-          <div className="flex flex-wrap items-center gap-3 text-[10px] text-blue-900 font-medium">
+          <div className="flex flex-wrap items-center gap-3 text-[10px] text-emerald-900 font-medium">
             <span className="flex items-center gap-1">
               <Check className="w-3 h-3 text-emerald-600" /> View <strong>clientes</strong> criada
             </span>
@@ -1046,7 +1046,7 @@ CREATE TRIGGER trigger_sync_company_to_snapshot AFTER INSERT OR UPDATE OR DELETE
             className="p-4 flex items-center justify-between cursor-pointer hover:bg-slate-100/70 transition-colors"
           >
             <div className="flex items-center gap-2.5">
-              <Terminal className="w-4 h-4 text-blue-600" />
+              <Terminal className="w-4 h-4 text-emerald-600" />
               <div>
                 <span className="text-xs font-bold text-slate-900 block">
                   Esquema SQL de Tabelas & Políticas RLS (supabase-schema.sql)
@@ -1083,13 +1083,13 @@ CREATE TRIGGER trigger_sync_company_to_snapshot AFTER INSERT OR UPDATE OR DELETE
 
           {isSchemaExpanded && (
             <div className="border-t border-slate-200 p-4 space-y-3 bg-white">
-              <div className="p-3 bg-blue-50/70 border border-blue-200 rounded-lg text-xs text-blue-950 space-y-1.5">
+              <div className="p-3 bg-emerald-50/70 border border-emerald-200 rounded-lg text-xs text-emerald-950 space-y-1.5">
                 <strong className="block font-bold">Instruções para ativar no Supabase:</strong>
-                <ol className="list-decimal list-inside space-y-0.5 text-[11px] text-blue-900">
+                <ol className="list-decimal list-inside space-y-0.5 text-[11px] text-emerald-900">
                   <li>Aceda ao projeto <strong>ckcwpcnsfennfjmjwoqp</strong> no painel web do Supabase.</li>
                   <li>Clique na barra lateral em <strong>SQL Editor</strong> e crie uma <strong>New Query</strong>.</li>
                   <li>Clique no botão acima <strong>Copiar SQL</strong> e cole na área do editor.</li>
-                  <li>Clique no botão <strong>RUN</strong> no Supabase para criar as tabelas (<code className="bg-blue-100 px-1 rounded">kwanzacobro_sync</code>, <code className="bg-blue-100 px-1 rounded">debts</code>, etc.).</li>
+                  <li>Clique no botão <strong>RUN</strong> no Supabase para criar as tabelas (<code className="bg-emerald-100 px-1 rounded">kwanzacobro_sync</code>, <code className="bg-emerald-100 px-1 rounded">debts</code>, etc.).</li>
                 </ol>
               </div>
 
@@ -1104,7 +1104,7 @@ CREATE TRIGGER trigger_sync_company_to_snapshot AFTER INSERT OR UPDATE OR DELETE
       {/* Gestão de Base de Dados & Backup Local */}
       <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-xs space-y-4 pt-6">
         <div className="flex items-center gap-2 text-sm font-bold text-slate-900 border-b border-slate-100 pb-3">
-          <Database className="w-4 h-4 text-blue-600" />
+          <Database className="w-4 h-4 text-emerald-600" />
           <span>Cópias de Segurança & Gestão de Dados</span>
         </div>
 
