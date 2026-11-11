@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { AuthUser, Seller, CompanySettings } from '../types/debt';
 import { defaultAdminUser } from '../data/initialData';
+import { supabase, SUPABASE_CONFIGURED } from '../lib/supabase';
 import { useLanguage } from '../i18n/LanguageContext';
 import { LanguageSelector } from './LanguageSelector';
 
@@ -33,80 +34,62 @@ export const LoginPage: React.FC<LoginPageProps> = ({ sellers, company, onLoginS
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setIsLoading(true);
+    try {
+      if (!SUPABASE_CONFIGURED) throw new Error('O Supabase ainda não está configurado. Contacte o administrador do sistema.');
+      const email = identifier.trim().toLowerCase();
+      if (!email.includes('@')) throw new Error('Utilize o endereço de e-mail associado à sua conta.');
+      const { data, error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+      if (signInError || !data.user) throw new Error('E-mail ou senha incorrectos. Se ainda não activou a conta, contacte o administrador.');
 
-    setTimeout(() => {
-      const cleanIdent = identifier.trim().toLowerCase();
-      const cleanPass = password.trim();
-
-      // 1. Verificar Administrador
-      const companyAdminPass = (company.senha || company.password || '').trim();
-      const companyEmail = (company.email || '').toLowerCase().trim();
-      if (
-        cleanIdent === 'admin@kwanzacobro.ao' || 
-        cleanIdent === 'admin@neurojus.ao' || 
-        cleanIdent === 'admin' || 
-        cleanIdent === 'administrador' ||
-        (companyEmail && cleanIdent === companyEmail)
-      ) {
-        if (
-          Boolean(companyAdminPass) && cleanPass === companyAdminPass
-        ) {
-          setIsLoading(false);
-          onLoginSuccess({
-            ...defaultAdminUser,
-            name: `Administrador Geral · ${company.name || 'KwanzaCobro'}`,
-            email: company.email || 'admin@kwanzacobro.ao',
-          });
-          return;
-        } else {
-          setIsLoading(false);
-          setError('Senha de administrador incorrecta.');
-          return;
-        }
+      const { data: profile, error: profileError } = await supabase
+        .from('user_profiles')
+        .select('user_id,seller_id,full_name,role')
+        .eq('user_id', data.user.id)
+        .maybeSingle();
+      if (profileError || !profile || !['admin', 'vendedor'].includes(profile.role)) {
+        await supabase.auth.signOut();
+        throw new Error('A conta autenticou, mas ainda não tem um perfil/permissão atribuído. Contacte o administrador.');
       }
 
-      // 2. Verificar Vendedores / Funcionários
-      const foundSeller = sellers.find(s => {
-        const sEmail = (s.email || '').toLowerCase().trim();
-        const sPhone = s.phone.replace(/\s+/g, '');
-        const cleanInputPhone = cleanIdent.replace(/\s+/g, '');
-        const sName = s.name.toLowerCase().trim();
-
-        return (
-          sEmail === cleanIdent || 
-          sPhone === cleanInputPhone || 
-          sName === cleanIdent ||
-          sEmail.startsWith(cleanIdent)
-        );
+      let seller: any = null;
+      if (profile.seller_id) {
+        const { data: sellerRow } = await supabase
+          .from('sellers')
+          .select('id,name,email,phone,branch')
+          .eq('id', profile.seller_id)
+          .maybeSingle();
+        seller = sellerRow;
+      }
+      onLoginSuccess({
+        id: seller?.id || data.user.id,
+        name: profile.full_name || seller?.name || data.user.email || 'Utilizador',
+        email: data.user.email || '',
+        phone: seller?.phone || '',
+        role: profile.role,
+        branch: seller?.branch || '',
       });
-
-      if (foundSeller) {
-        const expectedPass = String(foundSeller.password || '');
-        if (expectedPass.length > 0 && cleanPass === expectedPass) {
-          setIsLoading(false);
-          onLoginSuccess({
-            id: foundSeller.id,
-            name: foundSeller.name,
-            email: foundSeller.email || `${foundSeller.name.toLowerCase().replace(/\s+/g, '.')}@kwanzacobro.ao`,
-            phone: foundSeller.phone,
-            role: foundSeller.role || 'vendedor',
-            branch: foundSeller.branch,
-          });
-          return;
-        } else {
-          setIsLoading(false);
-          setError('Senha incorrecta para este vendedor.');
-          return;
-        }
-      }
-
+    } catch (err: any) {
+      setError(err?.message || 'Não foi possível iniciar sessão.');
+    } finally {
       setIsLoading(false);
-      setError('Credenciais não encontradas. Verifique o utilizador e a senha.');
-    }, 300);
+    }
+  };
+
+  const handlePasswordRecovery = async () => {
+    setError(null);
+    const email = identifier.trim().toLowerCase();
+    if (!email.includes('@')) {
+      setError('Introduza primeiro o seu e-mail para receber a ligação de recuperação.');
+      return;
+    }
+    const { error: recoveryError } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: window.location.origin,
+    });
+    setError(recoveryError ? recoveryError.message : 'Se o e-mail estiver registado, receberá uma ligação para redefinir a senha.');
   };
 
   const handleQuickLoginAdmin = () => {
@@ -178,7 +161,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ sellers, company, onLoginS
 
             <div>
               <label htmlFor="neurojus-identifier" className="block text-xs font-bold text-slate-700 mb-1.5">
-                {t('login.ident_label', 'E-mail ou Utilizador de Acesso')}
+                {t('login.ident_label', 'E-mail de Acesso')}
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
@@ -188,9 +171,9 @@ export const LoginPage: React.FC<LoginPageProps> = ({ sellers, company, onLoginS
                   id="neurojus-identifier"
                   name="identifier"
                   autoComplete="username"
-                  type="text"
+                  type="email"
                   required
-                  placeholder="admin@kwanzacobro.ao ou vendedor"
+                  placeholder="seuemail@empresa.ao"
                   value={identifier}
                   onChange={e => setIdentifier(e.target.value)}
                   className="w-full pl-10 pr-4 py-2.5 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-emerald-600 focus:border-emerald-600 outline-none transition-all"
@@ -230,6 +213,11 @@ export const LoginPage: React.FC<LoginPageProps> = ({ sellers, company, onLoginS
               </div>
             </div>
 
+            <div className="text-right -mt-2">
+              <button type="button" onClick={handlePasswordRecovery} className="text-xs font-semibold text-emerald-700 hover:text-emerald-900">
+                Esqueci-me da senha
+              </button>
+            </div>
             <button
               type="submit"
               disabled={isLoading}
