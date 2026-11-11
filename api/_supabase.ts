@@ -1,30 +1,42 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
 export function sanitizeSupabaseUrl(rawUrl?: string): string {
-  if (!rawUrl) return 'https://ckcwpcnsfennfjmjwoqp.supabase.co';
-  let cleaned = rawUrl.trim();
-  cleaned = cleaned.replace(/\/rest\/v1\/?$/, '');
-  cleaned = cleaned.replace(/\/+$/, '');
-  return cleaned;
+  if (!rawUrl) return '';
+  return rawUrl.trim().replace(/\/rest\/v1\/?$/, '').replace(/\/+$/, '');
 }
 
-const rawUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || 'https://ckcwpcnsfennfjmjwoqp.supabase.co';
-const rawKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || 'sb_publishable_U4Rgccyd4DrhKeI7AuVyCQ_tYnwa-6p';
+export const SUPABASE_URL = sanitizeSupabaseUrl(
+  process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL
+);
+export const SUPABASE_PROJECT_REF = (() => {
+  try {
+    return new URL(SUPABASE_URL).hostname.split('.')[0] || 'unconfigured';
+  } catch {
+    return 'unconfigured';
+  }
+})();
 
-export const SUPABASE_URL = sanitizeSupabaseUrl(rawUrl);
-export const SUPABASE_KEY = rawKey.trim();
-export const SUPABASE_PROJECT_REF = 'ckcwpcnsfennfjmjwoqp';
+// Funções privilegiadas exigem service_role no servidor. Nunca usar anon/publishable como fallback.
+const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim() || '';
 
 let _supabaseClient: SupabaseClient | null = null;
 
 export function getBackendSupabase(): SupabaseClient {
+  if (!SUPABASE_URL || !SERVICE_ROLE_KEY) {
+    throw new Error(
+      'Configuração do Supabase incompleta no servidor. Defina SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY nas variáveis de ambiente da Vercel.'
+    );
+  }
+
   if (!_supabaseClient) {
-    _supabaseClient = createClient(SUPABASE_URL, SUPABASE_KEY, {
+    _supabaseClient = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
       auth: {
         persistSession: false,
         autoRefreshToken: false,
+        detectSessionInUrl: false,
       },
     });
   }
+
   return _supabaseClient;
 }
