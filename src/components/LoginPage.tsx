@@ -135,34 +135,34 @@ export const LoginPage: React.FC<LoginPageProps> = ({ sellers, company, onLoginS
   };
 
   return (
-    <div className="min-h-screen bg-slate-900 bg-gradient-to-br from-slate-950 via-blue-950 to-slate-900 flex flex-col justify-center items-center p-4 sm:p-6 text-slate-900 selection:bg-blue-600 selection:text-white">
+    <div className="min-h-screen bg-emerald-950 bg-gradient-to-br from-emerald-950 via-green-900 to-emerald-950 flex flex-col justify-center items-center p-4 sm:p-6 text-slate-900 selection:bg-emerald-600 selection:text-white">
       {/* Background Decor Elements */}
       <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#ffffff_1px,transparent_1px)] [background-size:24px_24px] pointer-events-none" />
 
       <div className="relative w-full max-w-md mx-auto">
         {/* Seletor de Idiomas no Topo da Página de Login */}
         <div className="flex items-center justify-between mb-3 px-1">
-          <span className="text-xs font-semibold text-blue-200/90">
+          <span className="text-xs font-semibold text-emerald-200/90">
             KwanzaCobro · Gestão de Dívidas
           </span>
           <LanguageSelector />
         </div>
 
         {/* Brand Card Top */}
-        <div className="bg-white rounded-3xl shadow-2xl border border-blue-500/30 overflow-hidden">
+        <div className="bg-white rounded-3xl shadow-2xl border border-emerald-500/30 overflow-hidden">
           {/* Header com Emblema KwanzaCobro em Azul Institucional */}
-          <div className="p-6 sm:p-8 bg-gradient-to-b from-blue-50/70 to-white border-b border-slate-100 text-center">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-600 to-blue-900 text-white font-mono font-black text-2xl shadow-md mb-3">
+          <div className="p-6 sm:p-8 bg-gradient-to-b from-emerald-50/70 to-white border-b border-slate-100 text-center">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-600 to-emerald-900 text-white font-mono font-black text-2xl shadow-md mb-3">
               KC
             </div>
 
             <h1 className="text-2xl font-black tracking-tight text-slate-900">
-              Kwanza<span className="text-blue-700">Cobro</span>
+              Kwanza<span className="text-emerald-700">Cobro</span>
             </h1>
             <p className="text-xs text-slate-500 font-semibold uppercase tracking-wider mt-1">
               Gestão e Controlo de Dívidas Empresariais
             </p>
-            <p className="text-[11px] text-blue-700 font-semibold mt-1">
+            <p className="text-[11px] text-emerald-700 font-semibold mt-1">
               Recuperação de Crédito, Comprovativos Oficiais e Avisos de Vencimento
             </p>
           </div>
@@ -190,7 +190,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ sellers, company, onLoginS
                   placeholder="admin@kwanzacobro.ao ou vendedor"
                   value={identifier}
                   onChange={e => setIdentifier(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-600 focus:border-blue-600 outline-none transition-all"
+                  className="w-full pl-10 pr-4 py-2.5 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-emerald-600 focus:border-emerald-600 outline-none transition-all"
                 />
               </div>
             </div>
@@ -211,7 +211,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ sellers, company, onLoginS
                   placeholder="••••••••"
                   value={password}
                   onChange={e => setPassword(e.target.value)}
-                  className="w-full pl-10 pr-10 py-2.5 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-600 focus:border-blue-600 outline-none transition-all"
+                  className="w-full pl-10 pr-10 py-2.5 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-emerald-600 focus:border-emerald-600 outline-none transition-all"
                 />
                 <button
                   type="button"
@@ -226,10 +226,10 @@ export const LoginPage: React.FC<LoginPageProps> = ({ sellers, company, onLoginS
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full py-3 px-4 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 active:scale-98 rounded-xl shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-70"
+              className="w-full py-3 px-4 text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 active:scale-98 rounded-xl shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-70"
             >
               <span>{isLoading ? t('login.authenticating', 'A autenticar...') : t('login.submit', 'Entrar no Sistema')}</span>
-              <ArrowRight className="w-4 h-4 text-blue-200" />
+              <ArrowRight className="w-4 h-4 text-emerald-200" />
             </button>
           </form>
 
@@ -243,14 +243,14 @@ export const LoginPage: React.FC<LoginPageProps> = ({ sellers, company, onLoginS
               <button
                 type="button"
                 onClick={handleQuickLoginAdmin}
-                className="py-3 px-3.5 bg-white border border-blue-200 hover:border-blue-400 hover:bg-blue-50/50 rounded-xl transition-all text-left shadow-2xs group cursor-pointer"
+                className="py-3 px-3.5 bg-white border border-emerald-200 hover:border-emerald-400 hover:bg-emerald-50/50 rounded-xl transition-all text-left shadow-2xs group cursor-pointer"
               >
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-blue-100 text-blue-800 flex items-center justify-center font-bold text-sm shrink-0 font-mono">
+                  <div className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold text-sm shrink-0 font-mono">
                     A
                   </div>
                   <div>
-                    <span className="text-xs font-bold text-slate-900 block group-hover:text-blue-900">
+                    <span className="text-xs font-bold text-slate-900 block group-hover:text-emerald-900">
                       Entrar como Administrador Geral
                     </span>
                     <span className="text-[11px] text-slate-500 block">
@@ -264,7 +264,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ sellers, company, onLoginS
                 <button
                   type="button"
                   onClick={() => handleQuickLoginSeller(sellers[0])}
-                  className="py-2.5 px-3 bg-white border border-slate-200 hover:border-blue-400 hover:bg-blue-50/50 rounded-xl transition-all text-left shadow-2xs group cursor-pointer"
+                  className="py-2.5 px-3 bg-white border border-slate-200 hover:border-emerald-400 hover:bg-emerald-50/50 rounded-xl transition-all text-left shadow-2xs group cursor-pointer"
                 >
                   <div className="flex items-center gap-2">
                     <div className="w-6 h-6 rounded-md bg-amber-100 text-amber-800 flex items-center justify-center font-bold text-xs shrink-0 font-mono">
@@ -299,7 +299,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ sellers, company, onLoginS
                       key={s.id}
                       type="button"
                       onClick={() => handleQuickLoginSeller(s)}
-                      className="px-2 py-1 text-[10px] font-semibold bg-white border border-slate-200 hover:border-blue-300 rounded-md text-slate-600 transition-colors cursor-pointer"
+                      className="px-2 py-1 text-[10px] font-semibold bg-white border border-slate-200 hover:border-emerald-300 rounded-md text-slate-600 transition-colors cursor-pointer"
                     >
                       {s.name.split(' ')[0]} ({s.branch.split(' ')[0]})
                     </button>
@@ -311,7 +311,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ sellers, company, onLoginS
         </div>
 
         {/* Footer */}
-        <div className="mt-4 text-center text-xs text-blue-200/80">
+        <div className="mt-4 text-center text-xs text-emerald-200/80">
           <p>© 2026 KwanzaCobro · Angola · Gestão de Dívidas Empresariais</p>
         </div>
       </div>
