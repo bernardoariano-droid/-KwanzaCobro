@@ -118,7 +118,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       status: 'pendente',
       smsSent,
       providerConfigured,
-      sandboxCode: rawCode,
     };
 
     globalSmsSessions.set(sessionId, sessionRecord);
