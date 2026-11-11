@@ -90,18 +90,18 @@ export const TopHeader: React.FC<TopHeaderProps> = ({
             <div className="w-8 h-8 rounded-lg bg-white border border-slate-200/80 p-0.5 flex items-center justify-center overflow-hidden shrink-0">
               <img
                 src={company?.logoUrl || '/assets/aistudio/IMG-20261010-WA0062_2b38905c.jpg'}
-                alt="KwanzaCobro"
+                alt="NEUROJUS"
                 className="w-full h-full object-contain"
               />
             </div>
             <span className="font-bold text-sm text-slate-900 tracking-tight">
-              Kwanza<span className="text-emerald-700">Cobro</span>
+              <span className="text-emerald-800">NEURO</span><span className="text-emerald-600">JUS</span>
             </span>
           </div>
 
           {/* Breadcrumb e Título do Módulo em Desktop */}
           <div className="hidden lg:flex items-center gap-2">
-            <span className="text-xs font-semibold text-slate-400">KwanzaCobro</span>
+            <span className="text-xs font-semibold text-slate-400">NEUROJUS</span>
             <span className="text-xs text-slate-300">/</span>
             <h1 className="text-sm font-bold text-slate-900">
               {getTabTitle(activeTab)}
@@ -114,6 +114,7 @@ export const TopHeader: React.FC<TopHeaderProps> = ({
           {/* Alertas 5 Dias */}
           {fiveDaysCount > 0 && (
             <button
+              type="button"
               onClick={onOpen5DayReminders}
               title={`Existem ${fiveDaysCount} compras a crédito com prazo a expirar em 5 dias`}
               className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-bold text-amber-900 bg-amber-50 hover:bg-amber-100 border border-amber-300 rounded-xl transition-all shadow-2xs active:scale-95 cursor-pointer whitespace-nowrap"
@@ -129,6 +130,7 @@ export const TopHeader: React.FC<TopHeaderProps> = ({
           {/* Sincronização Supabase Cloud */}
           {onManualSync && (
             <button
+              type="button"
               onClick={onManualSync}
               disabled={isSyncing}
               title={
@@ -160,6 +162,7 @@ export const TopHeader: React.FC<TopHeaderProps> = ({
           {/* Instalar App APK */}
           {onOpenInstallPWA && (
             <button
+              type="button"
               onClick={onOpenInstallPWA}
               title="Instalar Aplicação KwanzaCobro no dispositivo"
               className="hidden md:inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-700 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl transition-colors cursor-pointer"
@@ -171,6 +174,7 @@ export const TopHeader: React.FC<TopHeaderProps> = ({
 
           {/* Botão Primário: Nova Venda a Crédito */}
           <button
+            type="button"
             onClick={onOpenNewDebt}
             className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 active:scale-95 rounded-xl shadow-xs transition-all cursor-pointer whitespace-nowrap"
           >
