@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { getBackendSupabase } from '../_supabase.js';
+import { requireIdentity } from '../_auth.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
@@ -7,8 +7,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const supabase = getBackendSupabase();
+    const auth = await requireIdentity(req, res, ['admin']);
+    if (!auth) return;
+    const supabase = auth.client;
     const { debts, clients, sellers, company } = req.body || {};
+    if (!debts && !clients && !sellers && !company) return res.status(400).json({ success: false, error: 'Nenhum dado recebido.' });
     let anySuccess = false;
 
     // 1. Sincronizar Empresa
