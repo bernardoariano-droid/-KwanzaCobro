@@ -1,10 +1,13 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { getBackendSupabase, SUPABASE_URL, SUPABASE_KEY, SUPABASE_PROJECT_REF } from '../_supabase.js';
+import { SUPABASE_URL, SUPABASE_KEY, SUPABASE_PROJECT_REF } from '../_supabase.js';
+import { requireIdentity } from '../_auth.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const start = Date.now();
   try {
-    const supabase = getBackendSupabase();
+    const auth = await requireIdentity(req, res);
+    if (!auth) return;
+    const supabase = auth.client;
 
     // 1. Ping endpoint
     const pingRes = await fetch(`${SUPABASE_URL}/rest/v1/`, {
