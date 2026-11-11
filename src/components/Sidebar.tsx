@@ -124,7 +124,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
       {/* Barra Lateral / Sidebar */}
       <aside className={`
-        fixed top-0 bottom-0 left-0 z-50 w-64 sm:w-72 bg-white border-r border-slate-200/90 flex flex-col justify-between transition-transform duration-200 ease-in-out
+        fixed top-0 bottom-0 left-0 z-50 w-64 sm:w-72 bg-white border-r border-emerald-100 shadow-[8px_0_30px_rgba(15,80,45,0.04)] flex flex-col justify-between transition-transform duration-200 ease-in-out
         ${isMobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
       `}>
         {/* Topo da Sidebar: Logomarca KwanzaCobro & Fechar Mobile */}
@@ -140,7 +140,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </div>
             <div className="flex flex-col">
               <span className="font-extrabold text-base tracking-tight text-slate-900 leading-none">
-                Kwanza<span className="text-blue-700">Cobro</span>
+                Kwanza<span className="text-emerald-700">Cobro</span>
               </span>
               <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider mt-1">
                 {t('app.slogan', 'Gestão de Dívidas')}
@@ -163,9 +163,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
               onOpenNewDebt();
               onCloseMobile();
             }}
-            className="w-full py-2.5 px-3.5 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 active:scale-98 rounded-xl shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer"
+            className="w-full py-2.5 px-3.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 active:scale-98 rounded-xl shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer"
           >
-            <Plus className="w-4 h-4 text-blue-200" />
+            <Plus className="w-4 h-4 text-emerald-200" />
             <span>Registar Venda a Crédito</span>
           </button>
         </div>
@@ -189,12 +189,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     className={`
                       w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer text-left
                       ${isActive 
-                        ? 'bg-blue-50 text-blue-900 font-bold shadow-2xs' 
+                        ? 'bg-emerald-50 text-emerald-900 font-bold shadow-2xs' 
                         : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'}
                     `}
                   >
                     <div className="flex items-center gap-2.5">
-                      <Icon className={`w-4 h-4 ${isActive ? 'text-blue-700' : 'text-slate-400'}`} />
+                      <Icon className={`w-4 h-4 ${isActive ? 'text-emerald-700' : 'text-slate-400'}`} />
                       <span>{item.label}</span>
                     </div>
 
@@ -220,9 +220,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <button
                 onClick={onOpenInstallPWA}
                 title="Instalar App / APK KwanzaCobro"
-                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-semibold text-blue-800 bg-blue-50 hover:bg-blue-100 border border-blue-200/80 rounded-xl transition-colors cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-semibold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200/80 rounded-xl transition-colors cursor-pointer"
               >
-                <Smartphone className="w-3.5 h-3.5 text-blue-600" />
+                <Smartphone className="w-3.5 h-3.5 text-emerald-600" />
                 <span>Instalar APK</span>
               </button>
             )}
@@ -232,14 +232,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
           {currentUser && (
             <div className="p-2.5 bg-white border border-slate-200/80 rounded-xl shadow-2xs flex items-center justify-between gap-2">
               <div className="flex items-center gap-2 min-w-0">
-                <div className="w-8 h-8 rounded-lg bg-blue-700 text-white flex items-center justify-center font-bold text-xs shrink-0 font-mono">
+                <div className="w-8 h-8 rounded-lg bg-emerald-700 text-white flex items-center justify-center font-bold text-xs shrink-0 font-mono">
                   {currentUser.role === 'admin' ? 'A' : currentUser.name.slice(0, 1).toUpperCase()}
                 </div>
                 <div className="min-w-0">
                   <div className="font-bold text-xs text-slate-900 truncate">
                     {currentUser.name}
                   </div>
-                  <span className="text-[10px] text-blue-700 font-semibold block uppercase">
+                  <span className="text-[10px] text-emerald-700 font-semibold block uppercase">
                     {currentUser.role === 'admin' ? 'Administrador Geral' : 'Vendedor Comercial'}
                   </span>
                 </div>
