@@ -9,14 +9,17 @@
 - Desactiva os gatilhos antigos que copiavam palavras-passe em texto simples para o snapshot.
 - Remove palavras-passe do snapshot existente, sem apagar o snapshot nem os dados relacionais.
 
-## Estado actual — NÃO EXECUTAR A MIGRAÇÃO AINDA
-O SQL está preparado, mas a integração do frontend e das rotas Vercel com sessões Auth ainda não foi concluída nem testada. Executar agora irá bloquear o acesso anónimo que o código antigo ainda utiliza e poderá interromper a aplicação. Aguarde pela conclusão e validação do código antes de executar o SQL.
+## Estado do código no ramo de trabalho
+O formulário de login já usa `supabase.auth.signInWithPassword`, a recuperação usa `resetPasswordForEmail`, a aplicação restaura e termina sessões Supabase Auth, e o perfil `user_profiles` determina a função do utilizador. As rotas `/api/supabase/pull`, `/api/supabase/sync`, `/api/data` e `/api/supabase/status` validam o JWT e consultam o perfil; a sincronização integral é reservada ao administrador. O endpoint `/api/admin/users` provisiona contas Auth e registos de vendedor apenas após validar um administrador.
+
+**Ainda não executar o SQL nem publicar como produção.** O código está no ramo de trabalho, mas não foi possível executar build, testes automatizados ou testes contra o projecto Supabase real. Primeiro é necessário rever e aplicar a migração no Supabase, configurar as variáveis Vercel e testar com contas reais de administrador e vendedor.
 
 ## Preparação necessária antes da execução
 1. Faça uma cópia de segurança da base de dados.
 2. Confirme que está no projecto Supabase correcto.
 3. Não partilhe a chave `service_role` nem a palavra-passe aqui no ChatGPT.
-4. A conta Auth do administrador será criada no passo de activação indicado depois da integração.
+4. Adicione `SUPABASE_SERVICE_ROLE_KEY` apenas às variáveis privadas do projecto Vercel (Production, Preview e Development conforme necessário); nunca a coloque em `VITE_`.
+5. A conta Auth do administrador será criada em Authentication → Users antes da execução do SQL.
 
 ## Activação do administrador (apenas depois de executar a migração)
 1. Copie o UUID do administrador em Authentication → Users.
@@ -42,6 +45,6 @@ Apenas no servidor Vercel, nunca com prefixo VITE_:
 A chave `SUPABASE_SERVICE_ROLE_KEY` nunca deve ser colocada no código frontend, no GitHub ou enviada no chat.
 
 ## Atenção: esta é a migração da camada de identidade e das políticas RLS
-A aplicação ainda precisa de concluir a integração do fluxo de login/logout com `supabase.auth`, carregar o perfil autenticado antes de consultar os dados e substituir as rotas antigas de sincronização por endpoints que validem o JWT e o papel no servidor. Não considere o sistema pronto para produção até esses passos e os testes com duas contas (administrador e vendedor) estarem concluídos.
+Antes de produção, valide os endpoints e o isolamento de dados com duas contas reais (administrador e vendedor), confirme que o vendedor não consegue consultar nem alterar dados de outros vendedores e confirme o fluxo de recuperação de senha. A sincronização antiga por snapshot foi restringida a administrador; a aplicação usa também operações directas do cliente Supabase, sujeitas a RLS.
 
 As palavras-passe antigas guardadas nas colunas `sellers.password`, `company_settings.senha` e `company_settings.password` não podem ser importadas como credenciais Auth. Os utilizadores devem activar as contas e definir novas palavras-passe. Não elimine essas colunas nesta fase; primeiro conclua a activação e valide a aplicação.
