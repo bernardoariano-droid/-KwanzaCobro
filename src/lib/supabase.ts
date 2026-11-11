@@ -78,8 +78,6 @@ export function mapCompanyFromSupabase(row: any, fallback?: CompanySettings): Co
     penaltyPerDayRate: typeof row.penalty_per_day_rate === 'number' ? row.penalty_per_day_rate : (fallback?.penaltyPerDayRate || 0.1),
     daysBeforeDueAlert: typeof row.days_before_due_alert === 'number' ? row.days_before_due_alert : (fallback?.daysBeforeDueAlert || 5),
     autoAlertNotifications: typeof row.auto_alert_notifications === 'boolean' ? row.auto_alert_notifications : true,
-    senha: row.senha || row.password || fallback?.senha || fallback?.password || '',
-    password: row.password || row.senha || fallback?.password || fallback?.senha || '',
   };
 }
 
@@ -100,10 +98,6 @@ export function mapCompanyToSupabase(company: CompanySettings): any {
     penalty_per_day_rate: company.penaltyPerDayRate ?? 0.1,
     days_before_due_alert: company.daysBeforeDueAlert ?? 5,
     auto_alert_notifications: company.autoAlertNotifications ?? true,
-    ...(company.senha || company.password ? {
-      senha: company.senha || company.password,
-      password: company.password || company.senha,
-    } : {}),
     updated_at: new Date().toISOString(),
   };
 }
@@ -115,7 +109,6 @@ export function mapSellerFromSupabase(row: any): Seller {
     phone: row.phone || '',
     branch: row.branch || 'Sede',
     email: row.email || '',
-    password: row.password || '',
     role: (row.role === 'admin' ? 'admin' : 'vendedor') as any,
     createdAt: row.created_at ? String(row.created_at).slice(0, 10) : new Date().toISOString().slice(0, 10),
   };
@@ -128,7 +121,6 @@ export function mapSellerToSupabase(seller: Seller): any {
     phone: seller.phone,
     branch: seller.branch || 'Sede',
     email: seller.email || null,
-    ...(seller.password ? { password: seller.password } : {}),
     role: seller.role || 'vendedor',
     created_at: seller.createdAt ? new Date(seller.createdAt).toISOString() : new Date().toISOString(),
   };
