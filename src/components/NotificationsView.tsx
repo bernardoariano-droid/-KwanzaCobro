@@ -126,7 +126,7 @@ export const NotificationsView: React.FC<NotificationsViewProps> = ({
       <div className="bg-white border border-slate-200/80 rounded-2xl p-5 sm:p-6 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <div className="w-9 h-9 rounded-xl bg-blue-50 border border-blue-200/80 flex items-center justify-center text-blue-700">
+            <div className="w-9 h-9 rounded-xl bg-emerald-50 border border-emerald-200/80 flex items-center justify-center text-emerald-700">
               <BellRing className="w-5 h-5" />
             </div>
             <div>
@@ -159,7 +159,7 @@ export const NotificationsView: React.FC<NotificationsViewProps> = ({
           onClick={() => setActiveSubTab('5days')}
           className={`px-3.5 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
             activeSubTab === '5days'
-              ? 'bg-white text-blue-900 shadow-xs'
+              ? 'bg-white text-emerald-900 shadow-xs'
               : 'text-slate-600 hover:text-slate-900'
           }`}
         >
@@ -183,11 +183,11 @@ export const NotificationsView: React.FC<NotificationsViewProps> = ({
           onClick={() => setActiveSubTab('sms_log')}
           className={`px-3.5 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
             activeSubTab === 'sms_log'
-              ? 'bg-white text-blue-900 shadow-xs'
+              ? 'bg-white text-emerald-900 shadow-xs'
               : 'text-slate-600 hover:text-slate-900'
           }`}
         >
-          <Smartphone className="w-3.5 h-3.5 text-blue-600" />
+          <Smartphone className="w-3.5 h-3.5 text-emerald-600" />
           <span>Histórico SMS ({smsDebts.length})</span>
         </button>
 
@@ -386,7 +386,7 @@ export const NotificationsView: React.FC<NotificationsViewProps> = ({
                     {debt.confirmationCode && (
                       <div className="text-right">
                         <span className="text-[10px] text-slate-400 block">Código Oficial</span>
-                        <strong className="font-mono text-sm text-blue-900 bg-blue-50 px-2 py-0.5 rounded">
+                        <strong className="font-mono text-sm text-emerald-900 bg-emerald-50 px-2 py-0.5 rounded">
                           {debt.confirmationCode}
                         </strong>
                       </div>
@@ -423,7 +423,7 @@ export const NotificationsView: React.FC<NotificationsViewProps> = ({
                 onClick={() => setSelectedTemplate(item.id as WhatsAppMessageType)}
                 className={`w-full text-left p-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
                   selectedTemplate === item.id
-                    ? 'bg-blue-50 text-blue-900 border border-blue-200 shadow-2xs'
+                    ? 'bg-emerald-50 text-emerald-900 border border-emerald-200 shadow-2xs'
                     : 'text-slate-700 hover:bg-slate-50'
                 }`}
               >
