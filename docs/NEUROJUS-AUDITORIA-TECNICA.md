@@ -69,3 +69,20 @@ Consultar `.env.example`. A chave pública pode estar no frontend; nunca colocar
 7. Executar build, lint e testes funcionais antes de propor merge.
 
 **Aviso:** esta branch contém melhorias iniciais, mas não deve ser publicada como versão de produção até os pontos críticos serem resolvidos e testados.
+
+## Revisão da interface — 11 de Novembro de 2026
+
+Na revisão posterior foram aplicadas, nesta mesma branch, as seguintes correcções:
+
+1. Uniformizada a marca visível para **NEUROJUS** no login, navegação lateral, cabeçalho, dashboard, metadados do navegador e identificação PWA. Os identificadores antigos de login e os nomes internos de compatibilidade foram mantidos para não bloquear contas existentes.
+2. Corrigida a distinção visual dos gráficos de recuperação: montante recuperado em verde e saldo pendente em cinzento, incluindo as respectivas legendas.
+3. Associados os rótulos dos campos de utilizador e senha aos respectivos inputs através de `htmlFor` e `id`; adicionados nomes acessíveis aos controlos de mostrar/ocultar senha, abrir/fechar menu, instalar a aplicação e terminar sessão.
+4. Acrescentado `type="button"` aos controlos de navegação e acção que não devem submeter formulários.
+5. Mantida a identidade cromática verde e branca e a estrutura React + TypeScript + Vite.
+
+### Limites que permanecem
+
+- **Autenticação própria no servidor ainda não implementada.** O login continua a comparar senhas no cliente; a sessão continua no `localStorage`. As APIs de leitura ainda precisam de deixar de devolver campos de senha. Não declarar esta versão segura para produção.
+- A implementação completa da autenticação deve ser feita de forma coordenada: endpoint de login, sessão assinada em cookie HttpOnly/Secure/SameSite, validação em todas as rotas privadas, autorização por função, protecção contra tentativas repetidas e remoção dos campos de senha das respostas. Antes disso, é necessário confirmar o formato real das credenciais existentes e as políticas RLS actualmente aplicadas. Não se deve introduzir uma migração ou alterar credenciais sem aprovação.
+- Não foram executados `npm run build`, `npm run lint`, testes visuais em navegador ou testes reais com Supabase nesta revisão.
+- Nenhum dado/tabela Supabase foi alterado; nenhum SQL foi executado; `main` não foi modificada e não foi publicado deploy.
