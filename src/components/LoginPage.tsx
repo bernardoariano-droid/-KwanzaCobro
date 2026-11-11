@@ -27,8 +27,8 @@ interface LoginPageProps {
 
 export const LoginPage: React.FC<LoginPageProps> = ({ sellers, company, onLoginSuccess }) => {
   const { t } = useLanguage();
-  const [identifier, setIdentifier] = useState('admin@kwanzacobro.ao');
-  const [password, setPassword] = useState('admin');
+  const [identifier, setIdentifier] = useState('');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -43,7 +43,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ sellers, company, onLoginS
       const cleanPass = password.trim();
 
       // 1. Verificar Administrador
-      const companyAdminPass = company.senha || company.password || 'admin';
+      const companyAdminPass = (company.senha || company.password || '').trim();
       const companyEmail = (company.email || '').toLowerCase().trim();
       if (
         cleanIdent === 'admin@kwanzacobro.ao' || 
@@ -53,12 +53,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ sellers, company, onLoginS
         (companyEmail && cleanIdent === companyEmail)
       ) {
         if (
-          cleanPass === companyAdminPass || 
-          cleanPass === 'admin' || 
-          cleanPass === '123' || 
-          cleanPass === 'kwanzacobro2026' || 
-          cleanPass === 'neurojus2026' || 
-          cleanPass === 'admin123'
+          Boolean(companyAdminPass) && cleanPass === companyAdminPass
         ) {
           setIsLoading(false);
           onLoginSuccess({
@@ -69,7 +64,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ sellers, company, onLoginS
           return;
         } else {
           setIsLoading(false);
-          setError(`Senha de administrador incorreta. (Dica de acesso: ${companyAdminPass || 'admin'})`);
+          setError('Senha de administrador incorrecta.');
           return;
         }
       }
@@ -90,8 +85,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({ sellers, company, onLoginS
       });
 
       if (foundSeller) {
-        const expectedPass = foundSeller.password || '123';
-        if (cleanPass === expectedPass || cleanPass === '123' || cleanPass === '123456') {
+        const expectedPass = String(foundSeller.password || '');
+        if (expectedPass.length > 0 && cleanPass === expectedPass) {
           setIsLoading(false);
           onLoginSuccess({
             id: foundSeller.id,
@@ -104,13 +99,13 @@ export const LoginPage: React.FC<LoginPageProps> = ({ sellers, company, onLoginS
           return;
         } else {
           setIsLoading(false);
-          setError('Senha incorreta para este vendedor. (Dica: 123)');
+          setError('Senha incorrecta para este vendedor.');
           return;
         }
       }
 
       setIsLoading(false);
-      setError('Credenciais não encontradas. Verifique o e-mail ou utilize um dos acessos rápidos abaixo.');
+      setError('Credenciais não encontradas. Verifique o utilizador e a senha.');
     }, 300);
   };
 
@@ -205,7 +200,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({ sellers, company, onLoginS
                 <label className="block text-xs font-bold text-slate-700">
                   {t('login.pass_label', 'Senha de Acesso')}
                 </label>
-                <span className="text-[10px] text-slate-400 font-mono">Dica: admin / 123</span>
               </div>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
@@ -239,8 +233,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({ sellers, company, onLoginS
             </button>
           </form>
 
-          {/* Quick Demo Access Buttons */}
-          <div className="px-6 sm:px-8 pb-6 pt-2 border-t border-slate-100 bg-slate-50/70 space-y-3">
+          {/* Acessos rápidos disponíveis apenas em desenvolvimento */}
+          {import.meta.env.DEV && <div className="px-6 sm:px-8 pb-6 pt-2 border-t border-slate-100 bg-slate-50/70 space-y-3">
             <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block text-center">
               {sellers.length > 0 ? 'Acesso Rápido para Avaliação' : 'Acesso de Administrador Geral'}
             </span>
@@ -313,7 +307,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ sellers, company, onLoginS
                 </div>
               </div>
             )}
-          </div>
+          </div>}
         </div>
 
         {/* Footer */}
