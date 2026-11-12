@@ -205,13 +205,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   return (
     <div className="space-y-6 pb-20 animate-fade-in">
       {/* 1. Header do Painel Principal KwanzaCobro com Azul Institucional */}
-      <div className="bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-950 text-white rounded-3xl p-6 sm:p-8 shadow-sm relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="bg-gradient-to-r from-emerald-900 via-emerald-800 to-indigo-950 text-white rounded-3xl p-6 sm:p-8 shadow-sm relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
 
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="space-y-2">
             <div className="flex items-center gap-2">
-              <span className="px-2.5 py-0.5 text-[11px] font-bold bg-blue-500/30 text-blue-200 border border-blue-400/30 rounded-full font-mono uppercase tracking-wider">
+              <span className="px-2.5 py-0.5 text-[11px] font-bold bg-emerald-500/30 text-emerald-200 border border-emerald-400/30 rounded-full font-mono uppercase tracking-wider">
                 KwanzaCobro · {company.currency || 'AOA'}
               </span>
               {isSeller ? (
@@ -228,7 +228,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white">
               {isSeller ? t('dashboard.welcome_seller', 'Painel de Vendas e Cobranças no Terreno') : t('dashboard.welcome_admin', 'Painel Geral de Gestão e Controlo de Crédito')}
             </h1>
-            <p className="text-xs sm:text-sm text-blue-100 max-w-2xl leading-relaxed">
+            <p className="text-xs sm:text-sm text-emerald-100 max-w-2xl leading-relaxed">
               Monitorização em tempo real de crédito empresarial, recebimentos, prazos de vencimento e cobranças ativas em Angola.
             </p>
           </div>
@@ -246,9 +246,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
             <button
               onClick={onOpenNewDebt}
-              className="px-4 py-2.5 text-xs font-bold text-white bg-blue-600 hover:bg-blue-500 active:scale-95 rounded-xl shadow-xs transition-all flex items-center gap-2 cursor-pointer border border-blue-400/40"
+              className="px-4 py-2.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-500 active:scale-95 rounded-xl shadow-xs transition-all flex items-center gap-2 cursor-pointer border border-emerald-400/40"
             >
-              <Plus className="w-4 h-4 text-blue-200" />
+              <Plus className="w-4 h-4 text-emerald-200" />
               <span>+ {t('dashboard.new_debt_btn', 'Registar Venda')}</span>
             </button>
           </div>
@@ -258,10 +258,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       {/* 2. Grid de Métricas Principais (6 Indicadores Solicitados) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
         {/* Card 1: Total de Clientes */}
-        <div className="bg-white border border-slate-200/80 rounded-2xl p-4.5 shadow-xs hover:border-blue-300 transition-colors">
+        <div className="bg-white border border-slate-200/80 rounded-2xl p-4.5 shadow-xs hover:border-emerald-300 transition-colors">
           <div className="flex items-center justify-between text-xs text-slate-500 font-medium">
             <span>{t('dashboard.total_clients', 'Total Clientes')}</span>
-            <div className="p-1.5 bg-blue-50 text-blue-700 rounded-lg">
+            <div className="p-1.5 bg-emerald-50 text-emerald-700 rounded-lg">
               <Users className="w-4 h-4" />
             </div>
           </div>
@@ -274,7 +274,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         </div>
 
         {/* Card 2: Total de Dívidas (Volume Emitido) */}
-        <div className="bg-white border border-slate-200/80 rounded-2xl p-4.5 shadow-xs hover:border-blue-300 transition-colors">
+        <div className="bg-white border border-slate-200/80 rounded-2xl p-4.5 shadow-xs hover:border-emerald-300 transition-colors">
           <div className="flex items-center justify-between text-xs text-slate-500 font-medium">
             <span>{t('dashboard.total_debts', 'Total Dívidas')}</span>
             <div className="p-1.5 bg-slate-100 text-slate-700 rounded-lg">
@@ -306,14 +306,14 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         </div>
 
         {/* Card 4: Dívidas Pendentes (Saldo em Aberto) */}
-        <div className="bg-white border border-slate-200/80 rounded-2xl p-4.5 shadow-xs hover:border-blue-300 transition-colors">
+        <div className="bg-white border border-slate-200/80 rounded-2xl p-4.5 shadow-xs hover:border-emerald-300 transition-colors">
           <div className="flex items-center justify-between text-xs text-slate-500 font-medium">
             <span>{t('dashboard.pending_debts', 'Dívidas Pendentes')}</span>
-            <div className="p-1.5 bg-blue-50 text-blue-700 rounded-lg">
+            <div className="p-1.5 bg-emerald-50 text-emerald-700 rounded-lg">
               <Clock className="w-4 h-4" />
             </div>
           </div>
-          <div className="mt-2 text-xl font-black text-blue-900 font-mono tracking-tight" data-tabular>
+          <div className="mt-2 text-xl font-black text-emerald-900 font-mono tracking-tight" data-tabular>
             {formatKwanza(totalRemainingAmount)}
           </div>
           <div className="mt-1 text-xs text-slate-500">
@@ -366,13 +366,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
           <button
             onClick={onOpenNewDebt}
-            className="p-3 bg-slate-50 hover:bg-blue-50/60 border border-slate-200/80 hover:border-blue-300 rounded-xl transition-all text-left flex flex-col justify-between group cursor-pointer"
+            className="p-3 bg-slate-50 hover:bg-emerald-50/60 border border-slate-200/80 hover:border-emerald-300 rounded-xl transition-all text-left flex flex-col justify-between group cursor-pointer"
           >
-            <div className="p-2 bg-blue-100 text-blue-700 rounded-lg w-fit group-hover:bg-blue-600 group-hover:text-white transition-colors">
+            <div className="p-2 bg-emerald-100 text-emerald-700 rounded-lg w-fit group-hover:bg-emerald-600 group-hover:text-white transition-colors">
               <Plus className="w-4 h-4" />
             </div>
             <div className="mt-2">
-              <span className="font-bold text-xs text-slate-900 block group-hover:text-blue-900">
+              <span className="font-bold text-xs text-slate-900 block group-hover:text-emerald-900">
                 {t('nav.new_sale', 'Nova Venda')}
               </span>
               <span className="text-[10px] text-slate-500">Registo a crédito</span>
@@ -382,13 +382,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           {onOpenNewClient && (
             <button
               onClick={onOpenNewClient}
-              className="p-3 bg-slate-50 hover:bg-blue-50/60 border border-slate-200/80 hover:border-blue-300 rounded-xl transition-all text-left flex flex-col justify-between group cursor-pointer"
+              className="p-3 bg-slate-50 hover:bg-emerald-50/60 border border-slate-200/80 hover:border-emerald-300 rounded-xl transition-all text-left flex flex-col justify-between group cursor-pointer"
             >
-              <div className="p-2 bg-slate-200 text-slate-700 rounded-lg w-fit group-hover:bg-blue-600 group-hover:text-white transition-colors">
+              <div className="p-2 bg-slate-200 text-slate-700 rounded-lg w-fit group-hover:bg-emerald-600 group-hover:text-white transition-colors">
                 <Users className="w-4 h-4" />
               </div>
               <div className="mt-2">
-                <span className="font-bold text-xs text-slate-900 block group-hover:text-blue-900">
+                <span className="font-bold text-xs text-slate-900 block group-hover:text-emerald-900">
                   {t('dashboard.new_client_btn', 'Novo Cliente')}
                 </span>
                 <span className="text-[10px] text-slate-500">Cadastrar devedor</span>
@@ -434,13 +434,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           {onNavigateToTab && (
             <button
               onClick={() => onNavigateToTab('receipts')}
-              className="p-3 bg-slate-50 hover:bg-blue-50/60 border border-slate-200/80 hover:border-blue-300 rounded-xl transition-all text-left flex flex-col justify-between group cursor-pointer"
+              className="p-3 bg-slate-50 hover:bg-emerald-50/60 border border-slate-200/80 hover:border-emerald-300 rounded-xl transition-all text-left flex flex-col justify-between group cursor-pointer"
             >
-              <div className="p-2 bg-blue-100 text-blue-700 rounded-lg w-fit group-hover:bg-blue-600 group-hover:text-white transition-colors">
+              <div className="p-2 bg-emerald-100 text-emerald-700 rounded-lg w-fit group-hover:bg-emerald-600 group-hover:text-white transition-colors">
                 <FileCheck className="w-4 h-4" />
               </div>
               <div className="mt-2">
-                <span className="font-bold text-xs text-slate-900 block group-hover:text-blue-900">
+                <span className="font-bold text-xs text-slate-900 block group-hover:text-emerald-900">
                   Recibos PDF
                 </span>
                 <span className="text-[10px] text-slate-500">Impressão oficial</span>
@@ -451,13 +451,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           {onNavigateToTab && (
             <button
               onClick={() => onNavigateToTab('reports')}
-              className="p-3 bg-slate-50 hover:bg-blue-50/60 border border-slate-200/80 hover:border-blue-300 rounded-xl transition-all text-left flex flex-col justify-between group cursor-pointer"
+              className="p-3 bg-slate-50 hover:bg-emerald-50/60 border border-slate-200/80 hover:border-emerald-300 rounded-xl transition-all text-left flex flex-col justify-between group cursor-pointer"
             >
-              <div className="p-2 bg-slate-200 text-slate-700 rounded-lg w-fit group-hover:bg-blue-600 group-hover:text-white transition-colors">
+              <div className="p-2 bg-slate-200 text-slate-700 rounded-lg w-fit group-hover:bg-emerald-600 group-hover:text-white transition-colors">
                 <BarChart3 className="w-4 h-4" />
               </div>
               <div className="mt-2">
-                <span className="font-bold text-xs text-slate-900 block group-hover:text-blue-900">
+                <span className="font-bold text-xs text-slate-900 block group-hover:text-emerald-900">
                   Relatórios
                 </span>
                 <span className="text-[10px] text-slate-500">Balanço financeiro</span>
@@ -499,13 +499,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 style={{ width: `${recoveryRate}%` }}
               />
               <div 
-                className="bg-blue-600 h-full transition-all duration-300"
+                className="bg-emerald-600 h-full transition-all duration-300"
                 style={{ width: `${100 - recoveryRate}%` }}
               />
             </div>
             <div className="flex items-center justify-between text-[11px] text-slate-500 font-mono">
               <span className="text-emerald-700 font-bold">✓ {settledDebts.length} faturas quitadas</span>
-              <span className="text-blue-700 font-bold">• {effectiveDebts.length - settledDebts.length} em cobrança</span>
+              <span className="text-emerald-700 font-bold">• {effectiveDebts.length - settledDebts.length} em cobrança</span>
             </div>
           </div>
 
@@ -547,7 +547,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             {onNavigateToTab && (
               <button
                 onClick={() => onNavigateToTab('audit')}
-                className="text-xs font-semibold text-blue-700 hover:text-blue-800 cursor-pointer"
+                className="text-xs font-semibold text-emerald-700 hover:text-emerald-800 cursor-pointer"
               >
                 Ver histórico
               </button>
@@ -567,7 +567,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 >
                   <div className="flex items-center gap-2.5 min-w-0">
                     <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
-                      act.type === 'payment' ? 'bg-emerald-50 text-emerald-700' : 'bg-blue-50 text-blue-700'
+                      act.type === 'payment' ? 'bg-emerald-50 text-emerald-700' : 'bg-emerald-50 text-emerald-700'
                     }`}>
                       {act.type === 'payment' ? <CreditCard className="w-4 h-4" /> : <Receipt className="w-4 h-4" />}
                     </div>
@@ -613,7 +613,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             </div>
             <button
               onClick={() => onNavigateToDebts('aberta')}
-              className="text-xs font-semibold text-blue-700 hover:text-blue-800 cursor-pointer"
+              className="text-xs font-semibold text-emerald-700 hover:text-emerald-800 cursor-pointer"
             >
               Ver agenda
             </button>
@@ -726,7 +726,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                     <div className="mt-2.5 flex items-center gap-2.5">
                       <div className="flex-1 bg-slate-100 h-2 rounded-full overflow-hidden">
                         <div 
-                          className="bg-blue-600 h-full rounded-full transition-all duration-300"
+                          className="bg-emerald-600 h-full rounded-full transition-all duration-300"
                           style={{ width: `${sellerRecovery}%` }}
                         />
                       </div>

@@ -115,7 +115,7 @@ export const DigitalReceiptsView: React.FC<DigitalReceiptsViewProps> = ({
         <div className="bg-white border border-slate-200/80 rounded-2xl p-4.5 shadow-xs">
           <div className="flex items-center justify-between text-xs text-slate-500 font-medium">
             <span>Total Comprovativos</span>
-            <div className="p-1.5 bg-blue-50 text-blue-700 rounded-lg">
+            <div className="p-1.5 bg-emerald-50 text-emerald-700 rounded-lg">
               <FileCheck className="w-4 h-4" />
             </div>
           </div>
@@ -167,7 +167,7 @@ export const DigitalReceiptsView: React.FC<DigitalReceiptsViewProps> = ({
             placeholder={t('common.search', 'Pesquisar por fatura, código SMS, cliente...')}
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-3 py-1.5 text-xs border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-slate-50/50"
+            className="w-full pl-9 pr-3 py-1.5 text-xs border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-slate-50/50"
           />
         </div>
 
@@ -196,7 +196,7 @@ export const DigitalReceiptsView: React.FC<DigitalReceiptsViewProps> = ({
             onClick={() => setFilterType('partial')}
             className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer whitespace-nowrap ${
               filterType === 'partial'
-                ? 'bg-white text-blue-800 shadow-xs'
+                ? 'bg-white text-emerald-800 shadow-xs'
                 : 'text-slate-600 hover:text-slate-900'
             }`}
           >
@@ -240,7 +240,7 @@ export const DigitalReceiptsView: React.FC<DigitalReceiptsViewProps> = ({
                 >
                   <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
                     <div>
-                      <span className="font-mono font-bold text-xs text-blue-900">
+                      <span className="font-mono font-bold text-xs text-emerald-900">
                         {debt.invoiceNumber}
                       </span>
                       <div className="text-[10px] text-slate-500 font-mono mt-0.5">
@@ -284,9 +284,9 @@ export const DigitalReceiptsView: React.FC<DigitalReceiptsViewProps> = ({
                         {formatKwanza(debt.totalAmount)}
                       </div>
                     </div>
-                    <div className="bg-blue-50/50 p-2 rounded-lg border border-blue-100">
-                      <div className="text-[10px] text-blue-800 font-medium">{t('debts.balance', 'Saldo')}</div>
-                      <div className={`font-mono font-black mt-0.5 ${isSettled ? 'text-emerald-700' : 'text-blue-900'}`} data-tabular>
+                    <div className="bg-emerald-50/50 p-2 rounded-lg border border-emerald-100">
+                      <div className="text-[10px] text-emerald-800 font-medium">{t('debts.balance', 'Saldo')}</div>
+                      <div className={`font-mono font-black mt-0.5 ${isSettled ? 'text-emerald-700' : 'text-emerald-900'}`} data-tabular>
                         {formatKwanza(remaining)}
                       </div>
                     </div>
@@ -296,9 +296,9 @@ export const DigitalReceiptsView: React.FC<DigitalReceiptsViewProps> = ({
                   <div className="mt-3 pt-3 border-t border-slate-100 grid grid-cols-3 gap-1.5 text-xs">
                     <button
                       onClick={() => onDownloadPDF(debt)}
-                      className="py-2 px-2 text-blue-800 bg-blue-50 hover:bg-blue-100 rounded-lg font-medium transition-colors flex items-center justify-center gap-1 min-h-[40px] cursor-pointer"
+                      className="py-2 px-2 text-emerald-800 bg-emerald-50 hover:bg-emerald-100 rounded-lg font-medium transition-colors flex items-center justify-center gap-1 min-h-[40px] cursor-pointer"
                     >
-                      <FileDown className="w-3.5 h-3.5 text-blue-700" />
+                      <FileDown className="w-3.5 h-3.5 text-emerald-700" />
                       <span>PDF</span>
                     </button>
 
@@ -351,7 +351,7 @@ export const DigitalReceiptsView: React.FC<DigitalReceiptsViewProps> = ({
                         <td className="py-3.5 px-4 whitespace-nowrap">
                           <button
                             onClick={() => onViewDebtDetail(debt)}
-                            className="font-mono font-bold text-slate-900 hover:text-blue-700 transition-colors cursor-pointer"
+                            className="font-mono font-bold text-slate-900 hover:text-emerald-700 transition-colors cursor-pointer"
                           >
                             {debt.invoiceNumber}
                           </button>
@@ -409,7 +409,7 @@ export const DigitalReceiptsView: React.FC<DigitalReceiptsViewProps> = ({
                               {t('common.paid', '100% Liquidado')}
                             </span>
                           ) : paid > 0 ? (
-                            <span className="inline-block px-2 py-0.5 text-xs font-semibold text-blue-800 bg-blue-50 border border-blue-200 rounded-md">
+                            <span className="inline-block px-2 py-0.5 text-xs font-semibold text-emerald-800 bg-emerald-50 border border-emerald-200 rounded-md">
                               Amortizado ({Math.round((paid / debt.totalAmount) * 100)}%)
                             </span>
                           ) : (
@@ -424,7 +424,7 @@ export const DigitalReceiptsView: React.FC<DigitalReceiptsViewProps> = ({
                             <button
                               onClick={() => onDownloadPDF(debt)}
                               title={t('common.download_pdf', 'Descarregar PDF')}
-                              className="p-1.5 text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg transition-colors cursor-pointer"
+                              className="p-1.5 text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-lg transition-colors cursor-pointer"
                             >
                               <Download className="w-3.5 h-3.5" />
                             </button>

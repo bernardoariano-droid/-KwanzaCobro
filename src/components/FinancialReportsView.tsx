@@ -115,7 +115,7 @@ export const FinancialReportsView: React.FC<FinancialReportsViewProps> = ({
       <div className="bg-white border border-slate-200/80 rounded-2xl p-5 sm:p-6 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4 print:border-none print:shadow-none">
         <div>
           <div className="flex items-center gap-2">
-            <div className="w-9 h-9 rounded-xl bg-blue-50 border border-blue-200/80 flex items-center justify-center text-blue-700">
+            <div className="w-9 h-9 rounded-xl bg-emerald-50 border border-emerald-200/80 flex items-center justify-center text-emerald-700">
               <BarChart3 className="w-5 h-5" />
             </div>
             <div>
@@ -202,7 +202,7 @@ export const FinancialReportsView: React.FC<FinancialReportsViewProps> = ({
               title={`Recuperado: ${totals.recoveryRate}%`}
             />
             <div 
-              className="bg-blue-600 h-full transition-all duration-500" 
+              className="bg-emerald-600 h-full transition-all duration-500" 
               style={{ width: `${100 - totals.recoveryRate}%` }}
               title={`Pendente: ${100 - totals.recoveryRate}%`}
             />
@@ -216,8 +216,8 @@ export const FinancialReportsView: React.FC<FinancialReportsViewProps> = ({
             </div>
 
             <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-blue-600"></span>
-              <span className="font-bold text-blue-800">Em Aberto: {100 - totals.recoveryRate}%</span>
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-600"></span>
+              <span className="font-bold text-emerald-800">Em Aberto: {100 - totals.recoveryRate}%</span>
               <span className="text-slate-400">({formatKwanza(totals.remaining)})</span>
             </div>
           </div>

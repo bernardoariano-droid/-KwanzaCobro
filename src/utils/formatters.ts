@@ -104,7 +104,7 @@ export function getEffectiveStatus(debt: Debt): {
       status: 'acordo',
       label: 'Em Acordo / Reescalonada',
       daysDiff,
-      badgeClass: 'text-blue-700 bg-blue-50 border border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800',
+      badgeClass: 'text-teal-700 bg-teal-50 border border-teal-200 dark:bg-teal-950/40 dark:text-teal-300 dark:border-teal-800',
     };
   }
 

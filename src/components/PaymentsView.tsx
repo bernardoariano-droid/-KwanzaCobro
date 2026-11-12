@@ -159,7 +159,7 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
         <div className="bg-white border border-slate-200/80 rounded-2xl p-4.5 shadow-xs">
           <div className="flex items-center justify-between text-xs text-slate-500 font-medium">
             <span>Multicaixa Express (MCX)</span>
-            <div className="p-1.5 bg-blue-50 text-blue-700 rounded-lg">
+            <div className="p-1.5 bg-emerald-50 text-emerald-700 rounded-lg">
               <CreditCard className="w-4 h-4" />
             </div>
           </div>
@@ -196,7 +196,7 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
             placeholder={t('common.search', 'Pesquisar por comprovativo, fatura, cliente...')}
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-3 py-1.5 text-xs border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-slate-50/50"
+            className="w-full pl-9 pr-3 py-1.5 text-xs border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-slate-50/50"
           />
         </div>
 
@@ -204,7 +204,7 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
           <select
             value={methodFilter}
             onChange={e => setMethodFilter(e.target.value)}
-            className="py-1.5 px-3 text-xs border border-slate-200 rounded-xl bg-white text-slate-700 focus:ring-2 focus:ring-blue-500 cursor-pointer"
+            className="py-1.5 px-3 text-xs border border-slate-200 rounded-xl bg-white text-slate-700 focus:ring-2 focus:ring-emerald-500 cursor-pointer"
           >
             <option value="all">{t('common.all', 'Todos os Métodos')}</option>
             <option value="multicaixa_express">{t('payments.method_mcx', 'Multicaixa Express')}</option>
@@ -248,7 +248,7 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
                     <div className="font-bold text-sm text-slate-900 truncate">
                       {client?.name || debt.customerName || 'Cliente'}
                     </div>
-                    <div className="text-xs text-blue-700 font-mono mt-0.5">
+                    <div className="text-xs text-emerald-700 font-mono mt-0.5">
                       Fatura: {debt.invoiceNumber}
                     </div>
                   </div>
@@ -324,7 +324,7 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
                         </div>
                       </td>
 
-                      <td className="py-3 px-4 whitespace-nowrap font-mono font-medium text-blue-700">
+                      <td className="py-3 px-4 whitespace-nowrap font-mono font-medium text-emerald-700">
                         <button 
                           onClick={() => onViewDebtDetail(debt)}
                           className="hover:underline cursor-pointer"
@@ -339,7 +339,7 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
 
                       <td className="py-3 px-4 whitespace-nowrap">
                         <div className="flex items-center gap-1.5 text-slate-800 font-medium">
-                          <UserCheck className="w-3.5 h-3.5 text-blue-600" />
+                          <UserCheck className="w-3.5 h-3.5 text-emerald-600" />
                           <span>{payment.receivedBy || 'Operador'}</span>
                         </div>
                       </td>

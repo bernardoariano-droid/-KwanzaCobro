@@ -137,7 +137,7 @@ export const AuditTrailView: React.FC<AuditTrailViewProps> = ({
       <div className="bg-white border border-slate-200/80 rounded-2xl p-5 sm:p-6 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <div className="w-9 h-9 rounded-xl bg-blue-50 border border-blue-200/80 flex items-center justify-center text-blue-700">
+            <div className="w-9 h-9 rounded-xl bg-emerald-50 border border-emerald-200/80 flex items-center justify-center text-emerald-700">
               <History className="w-5 h-5" />
             </div>
             <div>
@@ -167,7 +167,7 @@ export const AuditTrailView: React.FC<AuditTrailViewProps> = ({
             placeholder={t('common.search', 'Pesquisar por ação, cliente, fatura ou operador...')}
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-3 py-1.5 text-xs border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-slate-50/50"
+            className="w-full pl-9 pr-3 py-1.5 text-xs border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-slate-50/50"
           />
         </div>
 
@@ -175,7 +175,7 @@ export const AuditTrailView: React.FC<AuditTrailViewProps> = ({
           <select
             value={operatorFilter}
             onChange={e => setOperatorFilter(e.target.value)}
-            className="py-1.5 px-3 text-xs border border-slate-200 rounded-xl bg-white text-slate-700 focus:ring-2 focus:ring-blue-500 cursor-pointer"
+            className="py-1.5 px-3 text-xs border border-slate-200 rounded-xl bg-white text-slate-700 focus:ring-2 focus:ring-emerald-500 cursor-pointer"
           >
             <option value="all">{t('common.all', 'Todos os Operadores / Vendedores')} ({operators.length})</option>
             {operators.map(op => (
@@ -209,7 +209,7 @@ export const AuditTrailView: React.FC<AuditTrailViewProps> = ({
                     </span>
                     <button
                       onClick={() => onViewDebtDetail(entry.debt)}
-                      className="font-mono text-blue-700 bg-blue-50 hover:bg-blue-100 px-2 py-0.5 rounded text-[11px] font-semibold cursor-pointer"
+                      className="font-mono text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-2 py-0.5 rounded text-[11px] font-semibold cursor-pointer"
                     >
                       {entry.debt.invoiceNumber}
                     </button>
@@ -226,7 +226,7 @@ export const AuditTrailView: React.FC<AuditTrailViewProps> = ({
 
                 <div className="text-right shrink-0 font-mono text-[11px] space-y-0.5">
                   <div className="flex items-center md:justify-end gap-1.5 text-slate-700 font-semibold font-sans">
-                    <UserCheck className="w-3.5 h-3.5 text-blue-600" />
+                    <UserCheck className="w-3.5 h-3.5 text-emerald-600" />
                     <span>{entry.performedBy}</span>
                   </div>
                   <span className="text-slate-400 block">
