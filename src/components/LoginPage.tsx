@@ -114,7 +114,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ sellers, company, onLoginS
       {/* Background Decor Elements */}
       <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#10b981_1px,transparent_1px)] [background-size:24px_24px] pointer-events-none" />
 
-      <div className="relative w-full max-w-md mx-auto">
+      <div className="relative w-full max-w-md md:max-w-2xl mx-auto transition-all">
         {/* Seletor de Idiomas no Topo da Página de Login */}
         <div className="flex items-center justify-between mb-4 px-1">
           <span className="text-xs font-semibold text-emerald-300">
@@ -135,13 +135,13 @@ export const LoginPage: React.FC<LoginPageProps> = ({ sellers, company, onLoginS
               />
             </div>
 
-            <h1 className="text-2xl font-black tracking-tight text-slate-900">
+            <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-slate-900">
               Kwanza<span className="text-emerald-700">Cobro</span>
             </h1>
-            <p className="text-xs text-slate-500 font-semibold uppercase tracking-wider mt-1">
+            <p className="text-xs sm:text-sm text-slate-500 font-semibold uppercase tracking-wider mt-1">
               {t('app.slogan', 'Gestão e Controlo de Dívidas Empresariais')}
             </p>
-            <p className="text-[11px] text-emerald-800 font-medium mt-1">
+            <p className="text-[11px] sm:text-xs text-emerald-800 font-medium mt-1">
               Recuperação de Crédito, Comprovativos Oficiais e Avisos de Vencimento
             </p>
           </div>
@@ -155,56 +155,61 @@ export const LoginPage: React.FC<LoginPageProps> = ({ sellers, company, onLoginS
               </div>
             )}
 
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                {t('login.ident_label', 'E-mail ou Utilizador de Acesso')}
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
-                  <Mail className="w-4 h-4" />
+            {/* Caixas de E-mail e Senha: Horizontal no Computador (md:grid-cols-2) e Vertical no Telemóvel (grid-cols-1) */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Campo E-mail / Utilizador */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  {t('login.ident_label', 'E-mail ou Utilizador')}
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                    <Mail className="w-4 h-4" />
+                  </div>
+                  <input
+                    type="text"
+                    required
+                    placeholder="admin@kwanzacobro.ao"
+                    value={identifier}
+                    onChange={e => setIdentifier(e.target.value)}
+                    className="w-full pl-10 pr-4 py-3 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-emerald-600 focus:border-emerald-600 outline-none transition-all"
+                  />
                 </div>
-                <input
-                  type="text"
-                  required
-                  placeholder="admin@kwanzacobro.ao ou utilizador"
-                  value={identifier}
-                  onChange={e => setIdentifier(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-emerald-600 focus:border-emerald-600 outline-none transition-all"
-                />
               </div>
-            </div>
 
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                {t('login.pass_label', 'Senha de Acesso')}
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
-                  <Lock className="w-4 h-4" />
+              {/* Campo Senha */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  {t('login.pass_label', 'Senha de Acesso')}
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                    <Lock className="w-4 h-4" />
+                  </div>
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    required
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={e => setPassword(e.target.value)}
+                    className="w-full pl-10 pr-10 py-3 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-emerald-600 focus:border-emerald-600 outline-none transition-all"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-600 cursor-pointer min-h-[44px]"
+                    title={showPassword ? 'Ocultar senha' : 'Ver senha'}
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
                 </div>
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  required
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={e => setPassword(e.target.value)}
-                  className="w-full pl-10 pr-10 py-3 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-emerald-600 focus:border-emerald-600 outline-none transition-all"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-600 cursor-pointer min-h-[44px]"
-                  title={showPassword ? 'Ocultar senha' : 'Ver senha'}
-                >
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
               </div>
             </div>
 
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full py-3.5 px-4 text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 active:scale-98 rounded-xl shadow-md shadow-emerald-700/20 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-70 min-h-[48px]"
+              className="w-full py-3.5 px-6 text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 active:scale-98 rounded-xl shadow-md shadow-emerald-700/20 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-70 min-h-[48px]"
             >
               <span>{isLoading ? t('login.authenticating', 'A autenticar...') : t('login.submit', 'Entrar no Sistema')}</span>
               <ArrowRight className="w-4 h-4 text-emerald-200" />
