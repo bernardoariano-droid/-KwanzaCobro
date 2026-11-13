@@ -19,6 +19,7 @@ import {
 } from '../lib/supabase';
 import { useLanguage } from '../i18n/LanguageContext';
 import { LanguageSelector } from './LanguageSelector';
+import { TempSuperAdminPasswordModal } from './TempSuperAdminPasswordModal';
 
 interface LoginPageProps {
   company: CompanySettings;
@@ -44,6 +45,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
   const [error, setError] = useState<string | null>(externalError);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isTempResetOpen, setIsTempResetOpen] = useState(false);
 
   useEffect(() => {
     setMode(initialMode);
@@ -406,9 +408,18 @@ export const LoginPage: React.FC<LoginPageProps> = ({
           )}
 
           {/* Security & System Info Footer */}
-          <div className="px-6 sm:px-8 py-4 border-t border-slate-100 bg-slate-50/80 flex items-center justify-center gap-2 text-[11px] text-slate-500">
-            <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
-            <span>Supabase Auth · Controlo de Perfis & Isolamento Multiempresa</span>
+          <div className="px-6 sm:px-8 py-4 border-t border-slate-100 bg-slate-50/80 flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-500">
+            <div className="flex items-center gap-2">
+              <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+              <span>Supabase Auth · Controlo de Perfis & Isolamento Multiempresa</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setIsTempResetOpen(true)}
+              className="font-semibold text-emerald-700 hover:text-emerald-900 hover:underline cursor-pointer"
+            >
+              Configuração Temporária · Super Admin
+            </button>
           </div>
         </div>
 
@@ -417,6 +428,12 @@ export const LoginPage: React.FC<LoginPageProps> = ({
           <p>© 2026 KwanzaCobro · Angola · Controlo de Dívidas e Crédito Comercial</p>
         </div>
       </div>
+
+      <TempSuperAdminPasswordModal
+        isOpen={isTempResetOpen}
+        onClose={() => setIsTempResetOpen(false)}
+        isSuperAdminAuthenticated={false}
+      />
     </div>
   );
 };

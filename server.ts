@@ -8,6 +8,7 @@ import { fileURLToPath } from 'url';
 import { createClient } from '@supabase/supabase-js';
 import adminUsersHandler from './api/admin/users.js';
 import adminCompaniesHandler from './api/admin/companies.js';
+import resetSuperAdminPasswordHandler from './api/admin/reset-super-admin-password.js';
 import authMeHandler from './api/auth/me.js';
 import supabasePullHandler from './api/supabase/pull.js';
 import supabaseSyncHandler from './api/supabase/sync.js';
@@ -569,6 +570,9 @@ app.get('/api/supabase/status', async (req, res) => {
 app.get('/api/auth/me', async (req, res) => authMeHandler(req as any, res as any));
 app.all('/api/admin/users', async (req, res) => adminUsersHandler(req as any, res as any));
 app.all('/api/admin/companies', async (req, res) => adminCompaniesHandler(req as any, res as any));
+app.all('/api/admin/reset-super-admin-password', async (req, res) =>
+  resetSuperAdminPasswordHandler(req as any, res as any)
+);
 
 // Endpoint: Sincronizar dados com o Supabase (autenticado + RLS)
 app.post('/api/supabase/sync', async (req, res) => supabaseSyncHandler(req as any, res as any));

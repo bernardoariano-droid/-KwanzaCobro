@@ -16,10 +16,12 @@ import {
   ToggleLeft,
   ToggleRight,
   Trash2,
-  ShieldCheck
+  ShieldCheck,
+  KeyRound
 } from 'lucide-react';
 import { CompanySettings, Seller, Client, Debt } from '../types/debt';
 import { formatKwanza } from '../utils/formatters';
+import { TempSuperAdminPasswordModal } from './TempSuperAdminPasswordModal';
 
 interface CompaniesManagementViewProps {
   companies: CompanySettings[];
@@ -48,6 +50,7 @@ export const CompaniesManagementView: React.FC<CompaniesManagementViewProps> = (
   const [editingCompany, setEditingCompany] = useState<CompanySettings | null>(null);
   const [showSqlModal, setShowSqlModal] = useState(false);
   const [isCopiedSql, setIsCopiedSql] = useState(false);
+  const [isTempPasswordModalOpen, setIsTempPasswordModalOpen] = useState(false);
 
   // Formulário de Cadastro / Edição
   const [formId, setFormId] = useState('');
@@ -295,6 +298,14 @@ FOR ALL USING (public.is_super_admin() OR (public.is_company_admin() AND id::tex
           </div>
 
           <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+            <button
+              onClick={() => setIsTempPasswordModalOpen(true)}
+              className="px-3.5 py-2.5 text-xs font-bold text-amber-950 bg-amber-100 hover:bg-amber-200 active:scale-95 rounded-xl shadow-xs transition-all flex items-center gap-2 cursor-pointer border border-amber-300"
+            >
+              <KeyRound className="w-4 h-4 text-amber-800" />
+              <span>Senha Super Admin (Temp)</span>
+            </button>
+
             <button
               onClick={() => setShowSqlModal(true)}
               className="px-3.5 py-2.5 text-xs font-bold text-emerald-950 bg-white hover:bg-emerald-50 active:scale-95 rounded-xl shadow-xs transition-all flex items-center gap-2 cursor-pointer border border-emerald-200"
@@ -814,6 +825,12 @@ FOR ALL USING (public.is_super_admin() OR (public.is_company_admin() AND id::tex
           </div>
         </div>
       )}
+
+      <TempSuperAdminPasswordModal
+        isOpen={isTempPasswordModalOpen}
+        onClose={() => setIsTempPasswordModalOpen(false)}
+        isSuperAdminAuthenticated={true}
+      />
     </div>
   );
 };
