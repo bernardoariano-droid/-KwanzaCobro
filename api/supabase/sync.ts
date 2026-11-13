@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { getBackendSupabase } from '../_supabase.js';
+import { authenticateRequest } from '../_supabase.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
@@ -7,68 +7,101 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const supabase = getBackendSupabase();
-    const { debts, clients, sellers, company } = req.body || {};
+    const auth = await authenticateRequest(req);
+    if (!auth.ok) {
+      return res.status(auth.status).json({ success: false, error: auth.error });
+    }
+
+    const { userSupabase: supabase, profile } = auth;
+    const { debts, clients, sellers, company, companies } = req.body || {};
     let anySuccess = false;
 
-    // 1. Sincronizar Empresa
-    if (company) {
-      try {
-        await supabase.from('company_settings').upsert({
-          id: 'default_company',
-          name: company.name || 'KwanzaCobro',
-          nif: company.nif || '',
-          phone: company.phone || '',
-          email: company.email || '',
-          address: company.address || '',
-          city: company.city || 'Luanda, Angola',
-          bank_name: company.bankName || '',
-          iban: company.iban || '',
-          express_phone: company.expressPhone || '',
-          currency: company.currency || 'Kz',
-          logo_url: company.logoUrl || null,
-          penalty_per_day_rate: company.penaltyPerDayRate ?? 0.1,
-          days_before_due_alert: company.daysBeforeDueAlert ?? 5,
-          auto_alert_notifications: company.autoAlertNotifications ?? true,
-          senha: company.senha || company.password || 'admin',
-          password: company.password || company.senha || 'admin',
-          updated_at: new Date().toISOString(),
-        }, { onConflict: 'id' });
-        anySuccess = true;
-      } catch (compErr) {
-        console.warn('Erro ao salvar company_settings:', compErr);
+    const scopedCompanyId = (incomingCompanyId?: string | null) => {
+      if (profile.role === 'super_admin') return incomingCompanyId || profile.companyId || 'default_company';
+      return profile.companyId || 'default_company';
+    };
+
+    // 1. Sincronizar Empresas (apenas super_admin ou admin_geral na própria empresa)
+    if (profile.role === 'super_admin' || profile.role === 'admin_geral') {
+      const companiesList =
+        profile.role === 'super_admin' && Array.isArray(companies) && companies.length > 0
+          ? companies
+          : company
+          ? [company]
+          : [];
+
+      for (const comp of companiesList) {
+        const compId = comp.id || scopedCompanyId();
+        if (profile.role !== 'super_admin' && compId !== profile.companyId) {
+          continue;
+        }
+        try {
+          const companyPayload: any = {
+            id: compId,
+            name: comp.name || 'KwanzaCobro',
+            nif: comp.nif || '',
+            phone: comp.phone || '',
+            email: comp.email || '',
+            address: comp.address || '',
+            city: comp.city || 'Luanda, Angola',
+            bank_name: comp.bankName || '',
+            iban: comp.iban || '',
+            express_phone: comp.expressPhone || '',
+            currency: comp.currency || 'Kz',
+            logo_url: comp.logoUrl || null,
+            penalty_per_day_rate: comp.penaltyPerDayRate ?? 0.1,
+            days_before_due_alert: comp.daysBeforeDueAlert ?? 5,
+            auto_alert_notifications: comp.autoAlertNotifications ?? true,
+            status: comp.status || 'ativo',
+            updated_at: new Date().toISOString(),
+          };
+
+          const { error: compErr } = await supabase
+            .from('company_settings')
+            .upsert(companyPayload, { onConflict: 'id' });
+          if (!compErr) anySuccess = true;
+        } catch (compErr) {
+          console.warn('Erro ao salvar company_settings:', compErr);
+        }
       }
     }
 
-    // 2. Sincronizar Vendedores
-    if (Array.isArray(sellers) && sellers.length > 0) {
+    // 2. Sincronizar Vendedores (apenas admin_geral da própria empresa ou super_admin)
+    if ((profile.role === 'super_admin' || profile.role === 'admin_geral') && Array.isArray(sellers) && sellers.length > 0) {
       try {
-        const sellerRows = sellers.map((s: any) => ({
-          id: String(s.id),
-          name: s.name,
-          phone: s.phone,
-          branch: s.branch || 'Sede',
-          email: s.email || null,
-          password: s.password || '123',
-          role: s.role || 'vendedor',
-          created_at: s.createdAt ? new Date(s.createdAt).toISOString() : new Date().toISOString(),
-        }));
-        await supabase.from('sellers').upsert(sellerRows, { onConflict: 'id' });
-        anySuccess = true;
+        const sellerRows = sellers
+          .filter((s: any) => profile.role === 'super_admin' || (s.companyId || 'default_company') === profile.companyId)
+          .map((s: any) => ({
+            id: String(s.id),
+            name: s.name,
+            phone: s.phone,
+            branch: s.branch || 'Sede',
+            email: s.email || null,
+            role: s.role || 'vendedor',
+            company_id: scopedCompanyId(s.companyId),
+            created_at: s.createdAt ? new Date(s.createdAt).toISOString() : new Date().toISOString(),
+          }));
+        if (sellerRows.length > 0) {
+          const { error: selErr } = await supabase.from('sellers').upsert(sellerRows, { onConflict: 'id' });
+          if (!selErr) anySuccess = true;
+        }
       } catch (selErr) {
         console.warn('Erro ao salvar sellers:', selErr);
       }
     }
 
-    // 3. Sincronizar Clientes (incluindo clientes criados em vendas rápidas para satisfazer FK)
+    // 3. Sincronizar Clientes (isolados à empresa autorizada)
     const clientMap = new Map<string, any>();
     if (Array.isArray(clients)) {
       for (const c of clients) {
-        if (c && c.id) clientMap.set(String(c.id), c);
+        if (!c || !c.id) continue;
+        if (profile.role !== 'super_admin' && c.companyId && c.companyId !== profile.companyId) continue;
+        clientMap.set(String(c.id), c);
       }
     }
     if (Array.isArray(debts)) {
       for (const d of debts) {
+        if (profile.role !== 'super_admin' && d.companyId && d.companyId !== profile.companyId) continue;
         const cId = String(d.clientId || '');
         if (cId && !clientMap.has(cId)) {
           clientMap.set(cId, {
@@ -80,6 +113,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             client_type: 'particular',
             credit_limit: 500000,
             created_by_seller_id: d.sellerId ? String(d.sellerId) : null,
+            companyId: scopedCompanyId(d.companyId),
             created_at: new Date().toISOString(),
           });
         }
@@ -100,24 +134,38 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           client_type: c.clientType || c.client_type || 'particular',
           credit_limit: c.creditLimit ?? c.credit_limit ?? 0,
           notes: c.notes || null,
-          created_by_seller_id: c.createdBySellerId || c.created_by_seller_id ? String(c.createdBySellerId || c.created_by_seller_id) : null,
+          created_by_seller_id:
+            c.createdBySellerId || c.created_by_seller_id
+              ? String(c.createdBySellerId || c.created_by_seller_id)
+              : null,
+          company_id: scopedCompanyId(c.companyId || c.company_id),
           created_at: c.createdAt ? new Date(c.createdAt).toISOString() : new Date().toISOString(),
         }));
-        await supabase.from('clients').upsert(clientRows, { onConflict: 'id' });
-        anySuccess = true;
+        const { error: cliErr } = await supabase.from('clients').upsert(clientRows, { onConflict: 'id' });
+        if (!cliErr) anySuccess = true;
       } catch (cliErr) {
         console.warn('Erro ao salvar clients:', cliErr);
       }
     }
 
-    // 4. Sincronizar Dívidas, Itens e Pagamentos
+    // 4. Sincronizar Dívidas, Itens e Pagamentos (isolados à empresa e carteira do vendedor)
     if (Array.isArray(debts) && debts.length > 0) {
       try {
-        const debtRows = debts.map((d: any) => ({
+        const authorizedDebts = debts.filter((d: any) => {
+          if (profile.role === 'super_admin') return true;
+          if (d.companyId && d.companyId !== profile.companyId) return false;
+          if (profile.role === 'vendedor') {
+            return String(d.sellerId) === profile.sellerId || String(d.sellerId) === profile.id;
+          }
+          return true;
+        });
+
+        const debtRows = authorizedDebts.map((d: any) => ({
           id: String(d.id),
           invoice_number: d.invoiceNumber,
           client_id: String(d.clientId),
           seller_id: String(d.sellerId),
+          company_id: scopedCompanyId(d.companyId),
           customer_name: d.customerName || null,
           customer_phone: d.customerPhone,
           issue_date: d.issueDate || new Date().toISOString().slice(0, 10),
@@ -128,72 +176,59 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           terms: d.terms || null,
           confirmation_status: d.confirmationStatus || 'sem_sms',
           confirmation_mode: d.confirmationMode || 'pessoal',
-          confirmation_code: d.confirmation_code || null,
-          confirmation_transaction_id: d.confirmation_transaction_id || null,
+          confirmation_code: d.confirmationCode || d.confirmation_code || null,
+          confirmation_transaction_id: d.confirmationTransactionId || d.confirmation_transaction_id || null,
           reminder_5_days_sent: Boolean(d.reminder5DaysSent),
           reminder_5_days_sent_at: d.reminder5DaysSentAt ? new Date(d.reminder5DaysSentAt).toISOString() : null,
           updated_at: new Date().toISOString(),
         }));
-        await supabase.from('debts').upsert(debtRows, { onConflict: 'id' });
-        anySuccess = true;
 
-        const allItems: any[] = [];
-        const allPayments: any[] = [];
-        for (const d of debts) {
-          if (Array.isArray(d.items)) {
-            d.items.forEach((item: any, idx: number) => {
-              allItems.push({
-                id: item.id || `item-${d.id}-${idx}`,
-                debt_id: String(d.id),
-                description: item.description || 'Mercadoria a Crédito',
-                quantity: Number(item.quantity) || 1,
-                unit_price: Number(item.unitPrice) || 0,
-                total: Number(item.total) || 0,
-              });
-            });
-          }
-          if (Array.isArray(d.payments)) {
-            d.payments.forEach((p: any, idx: number) => {
-              allPayments.push({
-                id: p.id || `pay-${d.id}-${idx}`,
-                debt_id: String(d.id),
-                amount: Number(p.amount) || 0,
-                date: p.date || new Date().toISOString().slice(0, 10),
-                payment_method: p.paymentMethod || 'multicaixa_express',
-                receipt_ref: p.receiptRef || `REF-${Date.now()}`,
-                notes: p.notes || null,
-                received_by: p.receivedBy || 'Operador',
-                created_at: p.createdAt ? new Date(p.createdAt).toISOString() : new Date().toISOString(),
-              });
-            });
-          }
-        }
+        if (debtRows.length > 0) {
+          const { error: dErr } = await supabase.from('debts').upsert(debtRows, { onConflict: 'id' });
+          if (!dErr) anySuccess = true;
 
-        if (allItems.length > 0) {
-          await supabase.from('debt_items').upsert(allItems, { onConflict: 'id' });
-        }
-        if (allPayments.length > 0) {
-          await supabase.from('payments').upsert(allPayments, { onConflict: 'id' });
+          const allItems: any[] = [];
+          const allPayments: any[] = [];
+          for (const d of authorizedDebts) {
+            if (Array.isArray(d.items)) {
+              d.items.forEach((item: any, idx: number) => {
+                allItems.push({
+                  id: item.id || `item-${d.id}-${idx}`,
+                  debt_id: String(d.id),
+                  description: item.description || 'Mercadoria a Crédito',
+                  quantity: Number(item.quantity) || 1,
+                  unit_price: Number(item.unitPrice) || 0,
+                  total: Number(item.total) || 0,
+                });
+              });
+            }
+            if (Array.isArray(d.payments)) {
+              d.payments.forEach((p: any, idx: number) => {
+                allPayments.push({
+                  id: p.id || `pay-${d.id}-${idx}`,
+                  debt_id: String(d.id),
+                  amount: Number(p.amount) || 0,
+                  date: p.date || new Date().toISOString().slice(0, 10),
+                  payment_method: p.paymentMethod || 'multicaixa_express',
+                  receipt_ref: p.receiptRef || `REF-${Date.now()}`,
+                  notes: p.notes || null,
+                  received_by: p.receivedBy || 'Operador',
+                  created_at: p.createdAt ? new Date(p.createdAt).toISOString() : new Date().toISOString(),
+                });
+              });
+            }
+          }
+
+          if (allItems.length > 0) {
+            await supabase.from('debt_items').upsert(allItems, { onConflict: 'id' });
+          }
+          if (allPayments.length > 0) {
+            await supabase.from('payments').upsert(allPayments, { onConflict: 'id' });
+          }
         }
       } catch (debtErr) {
         console.warn('Erro ao salvar debts/items/payments:', debtErr);
       }
-    }
-
-    // 5. Salvar também snapshot kwanzacobro_sync
-    try {
-      await supabase.from('kwanzacobro_sync').upsert({
-        id: 'main',
-        debts: debts || [],
-        clients: clients || [],
-        sellers: sellers || [],
-        company: company || {},
-        updated_at: new Date().toISOString(),
-        updated_by: 'vercel-serverless',
-      }, { onConflict: 'id' });
-      anySuccess = true;
-    } catch {
-      // Ignorar se kwanzacobro_sync falhar
     }
 
     return res.status(200).json({

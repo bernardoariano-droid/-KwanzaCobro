@@ -15,27 +15,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     }
 
-    const fallbackSql = `-- KwanzaCobro Supabase PostgreSQL Schema
-CREATE TABLE IF NOT EXISTS public.company_settings (
-    id TEXT PRIMARY KEY DEFAULT 'default_company',
-    name TEXT NOT NULL DEFAULT 'KwanzaCobro - Gestão de Dívidas Empresariais',
-    nif TEXT DEFAULT '5401928374',
-    phone TEXT DEFAULT '+244 923 884 100',
-    email TEXT DEFAULT 'contacto@kwanzacobro.ao',
-    address TEXT DEFAULT 'Edifício Kilamba, Luanda, Angola',
-    city TEXT DEFAULT 'Luanda, Angola',
-    bank_name TEXT DEFAULT 'Banco BAI (Banco Angolano de Investimentos)',
-    iban TEXT DEFAULT 'AO06 0040 0000 9812 3456 1012 8',
-    express_phone TEXT DEFAULT '923 884 100',
-    currency TEXT DEFAULT 'Kz',
-    logo_url TEXT,
-    penalty_per_day_rate NUMERIC DEFAULT 0.1,
-    days_before_due_alert INTEGER DEFAULT 5,
-    auto_alert_notifications BOOLEAN DEFAULT TRUE,
-    senha TEXT DEFAULT 'admin',
-    password TEXT DEFAULT 'admin',
-    updated_at TIMESTAMPTZ DEFAULT NOW()
-);`;
+    const fallbackSql = `-- NEUROJUS / KwanzaCobro: Autenticação Supabase Auth + RLS Multiempresa
+-- Preserva bamidia@gmail.com (8b9f3c41-c996-4764-87c2-9d82411584e1)
+-- e funções existentes: is_super_admin(), current_company_id(), is_company_admin()
+ALTER TABLE public.utilizadores ADD COLUMN IF NOT EXISTS branch TEXT DEFAULT 'Sede';
+ALTER TABLE public.utilizadores ADD COLUMN IF NOT EXISTS seller_id TEXT;
+ALTER TABLE public.utilizadores ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW();
+ALTER TABLE public.sellers ADD COLUMN IF NOT EXISTS company_id TEXT DEFAULT 'default_company';
+ALTER TABLE public.clients ADD COLUMN IF NOT EXISTS company_id TEXT DEFAULT 'default_company';
+ALTER TABLE public.debts ADD COLUMN IF NOT EXISTS company_id TEXT DEFAULT 'default_company';
+ALTER TABLE public.audit_trail ADD COLUMN IF NOT EXISTS company_id TEXT DEFAULT 'default_company';`;
     return res.status(200).json({ success: true, sql: fallbackSql });
   } catch (err: any) {
     return res.status(500).json({ success: false, error: err.message });

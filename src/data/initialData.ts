@@ -1,15 +1,10 @@
 import { Client, Seller, Debt, CompanySettings, AuthUser } from '../types/debt';
 
-export const defaultAdminUser: AuthUser = {
-  id: 'usr-admin-1',
-  name: 'Administrador Geral · KwanzaCobro',
-  email: 'admin@kwanzacobro.ao',
-  phone: '+244 923 884 100',
-  role: 'admin',
-  branch: 'Direção Geral · Luanda',
-};
+export const PRESERVED_SUPER_ADMIN_EMAIL = 'bamidia@gmail.com';
+export const PRESERVED_SUPER_ADMIN_UUID = '8b9f3c41-c996-4764-87c2-9d82411584e1';
 
 export const initialCompanySettings: CompanySettings = {
+  id: 'default_company',
   name: 'KwanzaCobro - Gestão de Dívidas Empresariais',
   logoUrl: '/assets/aistudio/IMG-20261010-WA0062_2b38905c.jpg',
   nif: '5401928374',
@@ -24,6 +19,8 @@ export const initialCompanySettings: CompanySettings = {
   penaltyPerDayRate: 0.1,
   daysBeforeDueAlert: 5,
   autoAlertNotifications: true,
+  status: 'ativo',
+  createdAt: '2026-01-01',
 };
 
 export const initialSellers: Seller[] = [];
@@ -38,8 +35,8 @@ export const demoSellers: Seller[] = [
     phone: '+244 923 112 334',
     branch: 'Armazém Central Viana',
     email: 'manuel.domingos@neurojus.ao',
-    password: '123',
     role: 'vendedor',
+    isActive: true,
     createdAt: '2026-01-10',
   },
   {
@@ -48,8 +45,8 @@ export const demoSellers: Seller[] = [
     phone: '+244 934 556 778',
     branch: 'Filial São Paulo (Luanda)',
     email: 'esperanca.costa@neurojus.ao',
-    password: '123',
     role: 'vendedor',
+    isActive: true,
     createdAt: '2026-01-15',
   },
   {
@@ -58,8 +55,8 @@ export const demoSellers: Seller[] = [
     phone: '+244 945 990 112',
     branch: 'Filial Benguela / Lobito',
     email: 'joao.mukeba@neurojus.ao',
-    password: '123',
     role: 'vendedor',
+    isActive: true,
     createdAt: '2026-02-01',
   },
   {
@@ -68,8 +65,8 @@ export const demoSellers: Seller[] = [
     phone: '+244 912 443 210',
     branch: 'Filial Kikolo Retalho',
     email: 'teresa.baptista@neurojus.ao',
-    password: '123',
     role: 'vendedor',
+    isActive: true,
     createdAt: '2026-02-20',
   },
 ];

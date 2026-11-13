@@ -4,13 +4,24 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { Debt, Client, Seller, CompanySettings, Payment, AuthUser, DebtStatus, AuditEntry } from './types/debt';
+import {
+  Debt,
+  Client,
+  Seller,
+  CompanySettings,
+  Payment,
+  AuthUser,
+  DebtStatus,
+  Utilizador,
+  isSuperAdminRole,
+  isAdminOrSuperRole,
+  isCompanyAdminRole,
+} from './types/debt';
 import { 
   initialDebts, 
   initialClients, 
   initialSellers, 
   initialCompanySettings,
-  defaultAdminUser,
   demoDebts,
   demoClients,
   demoSellers
@@ -26,8 +37,9 @@ import { DigitalReceiptsView } from './components/DigitalReceiptsView';
 import { NotificationsView } from './components/NotificationsView';
 import { FinancialReportsView } from './components/FinancialReportsView';
 import { AuditTrailView } from './components/AuditTrailView';
-import { SellersView } from './components/SellersView';
+import { SellersView, CreateUserInput, UpdateUserInput } from './components/SellersView';
 import { CompanySettingsView } from './components/CompanySettingsModal';
+import { CompaniesManagementView } from './components/CompaniesManagementView';
 import { NewDebtModal } from './components/NewDebtModal';
 import { PaymentModal } from './components/PaymentModal';
 import { 
@@ -49,15 +61,21 @@ import { downloadDebtReceiptPDF } from './utils/pdfGenerator';
 import { getRemainingBalance, getDaysDiff, formatKwanza } from './utils/formatters';
 import { useLanguage } from './i18n/LanguageContext';
 import { 
+  supabase,
+  validateAuthenticatedUser,
+  signOutSupabaseAuth,
+  getSupabaseAccessToken,
+  fetchAuthorizedUtilizadores,
+  createAuthorizedUtilizador,
+  updateAuthorizedUtilizador,
+  deleteAuthorizedUtilizador,
   pullFromSupabase, 
   syncToSupabase, 
   saveClientToSupabase, 
-  deleteClientFromSupabase, 
-  saveSellerToSupabase, 
-  deleteSellerFromSupabase, 
   saveDebtToSupabase, 
   savePaymentToSupabase, 
   saveCompanyToSupabase, 
+  deleteCompanyFromSupabase,
   subscribeToSupabaseChanges, 
   testSupabaseConnection 
 } from './lib/supabase';
@@ -66,36 +84,67 @@ const STORAGE_KEY_DEBTS = 'kwanzacobro_debts_v2';
 const STORAGE_KEY_CLIENTS = 'kwanzacobro_clients_v2';
 const STORAGE_KEY_SELLERS = 'kwanzacobro_sellers_v2';
 const STORAGE_KEY_COMPANY = 'kwanzacobro_company_v2';
-const STORAGE_KEY_AUTH = 'kwanzacobro_auth_session_v2';
+const STORAGE_KEY_COMPANIES = 'kwanzacobro_companies_v2';
 
 export default function App() {
   const { t } = useLanguage();
-  // Estado de Autenticação com Persistência de Sessão
-  const [currentUser, setCurrentUser] = useState<AuthUser | null>(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY_AUTH);
-      return saved ? JSON.parse(saved) : null;
-    } catch {
-      return null;
-    }
-  });
+  // Estado de Autenticação Real via Supabase Auth + public.utilizadores
+  const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
+  const [isAuthChecking, setIsAuthChecking] = useState<boolean>(true);
+  const [isPasswordRecovery, setIsPasswordRecovery] = useState<boolean>(false);
+  const [authError, setAuthError] = useState<string | null>(null);
+  const [utilizadores, setUtilizadores] = useState<Utilizador[]>([]);
 
-  const handleLoginSuccess = (user: AuthUser) => {
-    setCurrentUser(user);
+  const clearCachedTenantData = () => {
+    setDebts(initialDebts);
+    setClients(initialClients);
+    setSellers(initialSellers);
+    setUtilizadores([]);
+    setCompanies([initialCompanySettings]);
+    setCompany(initialCompanySettings);
     try {
-      localStorage.setItem(STORAGE_KEY_AUTH, JSON.stringify(user));
-    } catch (e) {
-      console.error('Erro ao guardar sessão de autenticação', e);
+      localStorage.removeItem(STORAGE_KEY_DEBTS);
+      localStorage.removeItem(STORAGE_KEY_CLIENTS);
+      localStorage.removeItem(STORAGE_KEY_SELLERS);
+      localStorage.removeItem(STORAGE_KEY_COMPANY);
+      localStorage.removeItem(STORAGE_KEY_COMPANIES);
+    } catch {}
+  };
+
+  const handleLoginSuccess = (user: AuthUser, matchedCompany?: CompanySettings) => {
+    setAuthError(null);
+    setIsPasswordRecovery(false);
+    setCurrentUser(user);
+    if (isSuperAdminRole(user.role)) {
+      setActiveTab('companies');
+    } else {
+      setActiveTab('dashboard');
+    }
+    if (matchedCompany) {
+      setCompany(matchedCompany);
+      try {
+        localStorage.setItem(STORAGE_KEY_COMPANY, JSON.stringify(matchedCompany));
+      } catch {}
+    } else if (user.companyId) {
+      const targetComp = companies.find(c => (c.id || 'default_company') === user.companyId);
+      if (targetComp) {
+        setCompany(targetComp);
+        try {
+          localStorage.setItem(STORAGE_KEY_COMPANY, JSON.stringify(targetComp));
+        } catch {}
+      }
     }
   };
 
-  const handleLogout = () => {
-    setCurrentUser(null);
+  const handleLogout = async () => {
     try {
-      localStorage.removeItem(STORAGE_KEY_AUTH);
+      await signOutSupabaseAuth();
     } catch (e) {
-      console.error('Erro ao terminar sessão', e);
+      console.error('Erro ao terminar sessão no Supabase Auth', e);
     }
+    setCurrentUser(null);
+    setIsPasswordRecovery(false);
+    clearCachedTenantData();
     setActiveTab('dashboard');
   };
 
@@ -146,36 +195,152 @@ export default function App() {
     }
   });
 
-  // Estado de Sincronização com o Backend Localhost e Supabase
-  const [isLocalhostSynced, setIsLocalhostSynced] = useState(false);
+  // Lista de Todas as Empresas e Super Administradores
+  const [companies, setCompanies] = useState<CompanySettings[]>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY_COMPANIES);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+      return [initialCompanySettings];
+    } catch {
+      return [initialCompanySettings];
+    }
+  });
+
+  // Estado de Sincronização com o Backend e Supabase
   const [isSupabaseSynced, setIsSupabaseSynced] = useState(false);
   const [supabaseLatency, setSupabaseLatency] = useState<number | null>(null);
   const [lastSyncTime, setLastSyncTime] = useState<string>('');
   const [isManualSyncing, setIsManualSyncing] = useState<boolean>(false);
 
-  // Carregar dados guardados no Supabase e Servidor ao iniciar a aplicação
+  // 1. Verificar sessão persistida do Supabase Auth e escutar eventos de Auth (incluindo PASSWORD_RECOVERY)
   useEffect(() => {
     let isMounted = true;
 
-    const loadCloudData = async () => {
-      // 1. CARREGAMENTO DIRETO DO SUPABASE (Prioridade Máxima em Produção)
+    const hashHasRecovery =
+      typeof window !== 'undefined' && window.location.hash.includes('type=recovery');
+    if (hashHasRecovery) {
+      setIsPasswordRecovery(true);
+    }
+
+    const restoreSession = async () => {
+      try {
+        const { data } = await supabase.auth.getSession();
+        const sessionUser = data?.session?.user;
+        if (sessionUser && isMounted) {
+          const validation = await validateAuthenticatedUser(sessionUser);
+          if (!isMounted) return;
+          if (validation.ok) {
+            setCurrentUser(validation.user);
+            if (validation.company) {
+              setCompany(validation.company);
+            }
+            if (isSuperAdminRole(validation.user.role)) {
+              setActiveTab(prev => (prev === 'dashboard' ? 'companies' : prev));
+            }
+          } else {
+            setAuthError(validation.error);
+            setCurrentUser(null);
+            clearCachedTenantData();
+          }
+        }
+      } catch (err: any) {
+        if (isMounted) setAuthError(err?.message || null);
+      } finally {
+        if (isMounted) setIsAuthChecking(false);
+      }
+    };
+
+    restoreSession();
+
+    const { data: authSubscription } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (!isMounted) return;
+
+      if (event === 'PASSWORD_RECOVERY') {
+        setIsPasswordRecovery(true);
+        setIsAuthChecking(false);
+        return;
+      }
+
+      if (event === 'SIGNED_OUT') {
+        setCurrentUser(null);
+        setIsPasswordRecovery(false);
+        clearCachedTenantData();
+        setIsAuthChecking(false);
+        return;
+      }
+
+      if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') && session?.user) {
+        const validation = await validateAuthenticatedUser(session.user);
+        if (!isMounted) return;
+        if (validation.ok) {
+          setAuthError(null);
+          setCurrentUser(validation.user);
+          if (validation.company) {
+            setCompany(validation.company);
+          }
+        } else {
+          setAuthError(validation.error);
+          setCurrentUser(null);
+          clearCachedTenantData();
+        }
+      }
+    });
+
+    return () => {
+      isMounted = false;
+      authSubscription?.subscription?.unsubscribe();
+    };
+  }, []);
+
+  // 2. Carregar dados autorizados do Supabase SOMENTE após autenticação válida
+  useEffect(() => {
+    if (!currentUser) return;
+    let isMounted = true;
+
+    const loadAuthorizedCloudData = async () => {
       try {
         const pullResult = await pullFromSupabase();
         if (pullResult.success && pullResult.hasData && pullResult.data && isMounted) {
-          const { debts: cloudDebts, clients: cloudClients, sellers: cloudSellers, company: cloudCompany } = pullResult.data;
-          if (Array.isArray(cloudDebts) && cloudDebts.length > 0) {
+          const {
+            debts: cloudDebts,
+            clients: cloudClients,
+            sellers: cloudSellers,
+            utilizadores: cloudUtils,
+            company: cloudCompany,
+            companies: cloudCompanies,
+          } = pullResult.data;
+
+          if (Array.isArray(cloudDebts)) {
             setDebts(cloudDebts);
             localStorage.setItem(STORAGE_KEY_DEBTS, JSON.stringify(cloudDebts));
           }
-          if (Array.isArray(cloudClients) && cloudClients.length > 0) {
+          if (Array.isArray(cloudClients)) {
             setClients(cloudClients);
             localStorage.setItem(STORAGE_KEY_CLIENTS, JSON.stringify(cloudClients));
           }
-          if (Array.isArray(cloudSellers) && cloudSellers.length > 0) {
+          if (Array.isArray(cloudSellers)) {
             setSellers(cloudSellers);
             localStorage.setItem(STORAGE_KEY_SELLERS, JSON.stringify(cloudSellers));
           }
-          if (cloudCompany && cloudCompany.name) {
+          if (Array.isArray(cloudUtils) && cloudUtils.length > 0) {
+            setUtilizadores(cloudUtils);
+          }
+          if (Array.isArray(cloudCompanies) && cloudCompanies.length > 0) {
+            setCompanies(cloudCompanies);
+            localStorage.setItem(STORAGE_KEY_COMPANIES, JSON.stringify(cloudCompanies));
+            setCompany(prev => {
+              const preferredId = isSuperAdminRole(currentUser.role)
+                ? (prev.id || currentUser.companyId || 'default_company')
+                : (currentUser.companyId || prev.id || 'default_company');
+              const matched = cloudCompanies.find(c => (c.id || 'default_company') === preferredId);
+              const next = matched || (cloudCompany && cloudCompany.name ? cloudCompany : prev);
+              localStorage.setItem(STORAGE_KEY_COMPANY, JSON.stringify(next));
+              return next;
+            });
+          } else if (cloudCompany && cloudCompany.name) {
             setCompany(cloudCompany);
             localStorage.setItem(STORAGE_KEY_COMPANY, JSON.stringify(cloudCompany));
           }
@@ -183,40 +348,61 @@ export default function App() {
           setLastSyncTime(new Date().toLocaleTimeString('pt-AO'));
         }
       } catch (cloudErr) {
-        console.warn('Carregamento direto do Supabase falhou, tentando fallback:', cloudErr);
+        console.warn('Carregamento direto do Supabase falhou, tentando fallback autenticado:', cloudErr);
       }
 
-      // 2. Fallback via Vercel Serverless Function / Servidor Local
+      // Carregar lista completa de public.utilizadores para Admins via Vercel Serverless (/api/admin/users)
+      if (isAdminOrSuperRole(currentUser.role)) {
+        try {
+          const res = await fetchAuthorizedUtilizadores();
+          if (res.success && res.users.length > 0 && isMounted) {
+            setUtilizadores(res.users);
+          }
+        } catch {}
+      }
+
+      // Fallback via endpoint serverless autenticado com JWT
       try {
-        const supPull = await fetch('/api/supabase/pull');
-        if (supPull.ok && isMounted) {
-          const supPullJson = await supPull.json();
-          if (supPullJson.success && supPullJson.hasData) {
-            if (Array.isArray(supPullJson.sellers) && supPullJson.sellers.length > 0) {
-              setSellers(supPullJson.sellers);
-              localStorage.setItem(STORAGE_KEY_SELLERS, JSON.stringify(supPullJson.sellers));
+        const token = await getSupabaseAccessToken();
+        if (token) {
+          const supPull = await fetch('/api/supabase/pull', {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          if (supPull.ok && isMounted) {
+            const supPullJson = await supPull.json();
+            if (supPullJson.success && supPullJson.hasData) {
+              if (Array.isArray(supPullJson.sellers) && supPullJson.sellers.length > 0) {
+                setSellers(supPullJson.sellers);
+                localStorage.setItem(STORAGE_KEY_SELLERS, JSON.stringify(supPullJson.sellers));
+              }
+              if (Array.isArray(supPullJson.utilizadores) && supPullJson.utilizadores.length > 0) {
+                setUtilizadores(prev => (prev.length > 0 ? prev : supPullJson.utilizadores));
+              }
+              if (Array.isArray(supPullJson.clients) && supPullJson.clients.length > 0) {
+                setClients(supPullJson.clients);
+                localStorage.setItem(STORAGE_KEY_CLIENTS, JSON.stringify(supPullJson.clients));
+              }
+              if (Array.isArray(supPullJson.debts) && supPullJson.debts.length > 0) {
+                setDebts(supPullJson.debts);
+                localStorage.setItem(STORAGE_KEY_DEBTS, JSON.stringify(supPullJson.debts));
+              }
+              if (Array.isArray(supPullJson.companies) && supPullJson.companies.length > 0) {
+                setCompanies(supPullJson.companies);
+                localStorage.setItem(STORAGE_KEY_COMPANIES, JSON.stringify(supPullJson.companies));
+              } else if (supPullJson.company && supPullJson.company.name) {
+                setCompany(supPullJson.company);
+                localStorage.setItem(STORAGE_KEY_COMPANY, JSON.stringify(supPullJson.company));
+              }
+              setIsSupabaseSynced(true);
+              setLastSyncTime(new Date().toLocaleTimeString('pt-AO'));
             }
-            if (Array.isArray(supPullJson.clients) && supPullJson.clients.length > 0) {
-              setClients(supPullJson.clients);
-              localStorage.setItem(STORAGE_KEY_CLIENTS, JSON.stringify(supPullJson.clients));
-            }
-            if (Array.isArray(supPullJson.debts) && supPullJson.debts.length > 0) {
-              setDebts(supPullJson.debts);
-              localStorage.setItem(STORAGE_KEY_DEBTS, JSON.stringify(supPullJson.debts));
-            }
-            if (supPullJson.company && supPullJson.company.name) {
-              setCompany(supPullJson.company);
-              localStorage.setItem(STORAGE_KEY_COMPANY, JSON.stringify(supPullJson.company));
-            }
-            setIsSupabaseSynced(true);
-            setLastSyncTime(new Date().toLocaleTimeString('pt-AO'));
           }
         }
       } catch (err) {
         console.warn('API fallback pull indisponível:', err);
       }
 
-      // 3. Testar Conexão e Latência do Supabase
+      // Testar Conexão e Latência do Supabase
       try {
         const health = await testSupabaseConnection();
         if (isMounted && health.connected) {
@@ -226,17 +412,30 @@ export default function App() {
       } catch {}
     };
 
-    loadCloudData();
+    loadAuthorizedCloudData();
 
-    // 4. Subscrição em Tempo Real para sincronização automática entre múltiplos dispositivos
     const unsubscribe = subscribeToSupabaseChanges(async () => {
       try {
         const pull = await pullFromSupabase();
         if (pull.success && pull.hasData && pull.data && isMounted) {
-          if (Array.isArray(pull.data.debts) && pull.data.debts.length > 0) setDebts(pull.data.debts);
-          if (Array.isArray(pull.data.clients) && pull.data.clients.length > 0) setClients(pull.data.clients);
-          if (Array.isArray(pull.data.sellers) && pull.data.sellers.length > 0) setSellers(pull.data.sellers);
-          if (pull.data.company && pull.data.company.name) setCompany(pull.data.company);
+          if (Array.isArray(pull.data.debts)) setDebts(pull.data.debts);
+          if (Array.isArray(pull.data.clients)) setClients(pull.data.clients);
+          if (Array.isArray(pull.data.sellers)) setSellers(pull.data.sellers);
+          if (Array.isArray(pull.data.utilizadores) && pull.data.utilizadores.length > 0) {
+            setUtilizadores(pull.data.utilizadores);
+          }
+          if (Array.isArray(pull.data.companies) && pull.data.companies.length > 0) {
+            setCompanies(pull.data.companies);
+            setCompany(prev => {
+              const preferredId = isSuperAdminRole(currentUser.role)
+                ? (prev.id || currentUser.companyId || 'default_company')
+                : (currentUser.companyId || prev.id || 'default_company');
+              const matched = pull.data?.companies?.find(c => (c.id || 'default_company') === preferredId);
+              return matched || prev;
+            });
+          } else if (pull.data.company && pull.data.company.name) {
+            setCompany(pull.data.company);
+          }
           setIsSupabaseSynced(true);
           setLastSyncTime(new Date().toLocaleTimeString('pt-AO'));
         }
@@ -247,34 +446,57 @@ export default function App() {
       isMounted = false;
       unsubscribe();
     };
-  }, []);
+  }, [currentUser?.id, currentUser?.companyId, currentUser?.role]);
 
-  // Sincronização manual acionada pelo utilizador
+  // Sincronização manual acionada pelo utilizador autenticado
   const handleManualSyncNow = async () => {
+    if (!currentUser) return;
     setIsManualSyncing(true);
     try {
-      // 1. Sincronizar diretamente com o Supabase
-      const syncRes = await syncToSupabase({ debts, clients, sellers, company });
+      const syncRes = await syncToSupabase({ debts, clients, sellers, company, companies });
       if (syncRes.success) {
         setIsSupabaseSynced(true);
       }
 
-      // 2. Também notificar endpoint serverless
-      try {
-        await fetch('/api/supabase/sync', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ debts, clients, sellers, company }),
-        });
-      } catch {}
+      const token = await getSupabaseAccessToken();
+      if (token) {
+        try {
+          await fetch('/api/supabase/sync', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ debts, clients, sellers, company, companies }),
+          });
+        } catch {}
+      }
 
-      // 3. Puxar versão mais recente do Supabase
       const pullResult = await pullFromSupabase();
       if (pullResult.success && pullResult.data) {
-        if (Array.isArray(pullResult.data.sellers) && pullResult.data.sellers.length > 0) setSellers(pullResult.data.sellers);
-        if (Array.isArray(pullResult.data.clients) && pullResult.data.clients.length > 0) setClients(pullResult.data.clients);
-        if (Array.isArray(pullResult.data.debts) && pullResult.data.debts.length > 0) setDebts(pullResult.data.debts);
-        if (pullResult.data.company && pullResult.data.company.name) setCompany(pullResult.data.company);
+        if (Array.isArray(pullResult.data.sellers)) setSellers(pullResult.data.sellers);
+        if (Array.isArray(pullResult.data.clients)) setClients(pullResult.data.clients);
+        if (Array.isArray(pullResult.data.debts)) setDebts(pullResult.data.debts);
+        if (Array.isArray(pullResult.data.utilizadores) && pullResult.data.utilizadores.length > 0) {
+          setUtilizadores(pullResult.data.utilizadores);
+        }
+        if (Array.isArray(pullResult.data.companies) && pullResult.data.companies.length > 0) {
+          setCompanies(pullResult.data.companies);
+          const preferredId = isSuperAdminRole(currentUser.role)
+            ? (company.id || 'default_company')
+            : (currentUser.companyId || company.id || 'default_company');
+          const matched = pullResult.data.companies.find(c => (c.id || 'default_company') === preferredId);
+          if (matched) setCompany(matched);
+        } else if (pullResult.data.company && pullResult.data.company.name) {
+          setCompany(pullResult.data.company);
+        }
+      }
+
+      if (isAdminOrSuperRole(currentUser.role)) {
+        const usersRes = await fetchAuthorizedUtilizadores();
+        if (usersRes.success && usersRes.users.length > 0) {
+          setUtilizadores(usersRes.users);
+        }
       }
 
       setIsSupabaseSynced(true);
@@ -286,63 +508,66 @@ export default function App() {
     }
   };
 
-  // Salvar no LocalStorage e sincronizar com o Servidor Localhost sempre que alterar
+  // Salvar no LocalStorage apenas quando autenticado
   useEffect(() => {
+    if (!currentUser) return;
     try {
       localStorage.setItem(STORAGE_KEY_DEBTS, JSON.stringify(debts));
     } catch (e) {
       console.error('Erro ao guardar dívidas no LocalStorage', e);
     }
-  }, [debts]);
+  }, [debts, currentUser]);
 
   useEffect(() => {
+    if (!currentUser) return;
     try {
       localStorage.setItem(STORAGE_KEY_CLIENTS, JSON.stringify(clients));
     } catch (e) {
       console.error('Erro ao guardar clientes no LocalStorage', e);
     }
-  }, [clients]);
+  }, [clients, currentUser]);
 
   useEffect(() => {
+    if (!currentUser) return;
     try {
       localStorage.setItem(STORAGE_KEY_SELLERS, JSON.stringify(sellers));
     } catch (e) {
       console.error('Erro ao guardar vendedores no LocalStorage', e);
     }
-  }, [sellers]);
+  }, [sellers, currentUser]);
 
   useEffect(() => {
+    if (!currentUser) return;
     try {
       localStorage.setItem(STORAGE_KEY_COMPANY, JSON.stringify(company));
     } catch (e) {
       console.error('Erro ao guardar configurações da empresa no LocalStorage', e);
     }
-  }, [company]);
+  }, [company, currentUser]);
 
-  // Sincronização automática para o ficheiro de base de dados do Localhost e Supabase
   useEffect(() => {
-    const timer = setTimeout(async () => {
-      // 1. Sincronização Localhost
-      try {
-        const res = await fetch('/api/data/sync', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ debts, clients, sellers, company }),
-        });
-        if (res.ok) {
-          setIsLocalhostSynced(true);
-          setLastSyncTime(new Date().toLocaleTimeString('pt-AO'));
-        }
-      } catch (err) {
-        setIsLocalhostSynced(false);
-      }
+    if (!currentUser) return;
+    try {
+      localStorage.setItem(STORAGE_KEY_COMPANIES, JSON.stringify(companies));
+    } catch (e) {
+      console.error('Erro ao guardar empresas no LocalStorage', e);
+    }
+  }, [companies, currentUser]);
 
-      // 2. Sincronização Supabase (Nuvem PostgreSQL)
+  // Sincronização automática autenticada para Supabase / Backend
+  useEffect(() => {
+    if (!currentUser) return;
+    const timer = setTimeout(async () => {
       try {
+        const token = await getSupabaseAccessToken();
+        if (!token) return;
         const supRes = await fetch('/api/supabase/sync', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ debts, clients, sellers, company }),
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ debts, clients, sellers, company, companies }),
         });
         if (supRes.ok) {
           const supJson = await supRes.json();
@@ -353,10 +578,10 @@ export default function App() {
       } catch {
         // Falha transitória não interrompe o funcionamento local
       }
-    }, 600);
+    }, 800);
 
     return () => clearTimeout(timer);
-  }, [debts, clients, sellers, company]);
+  }, [debts, clients, sellers, company, companies, currentUser]);
 
   // Navegação
   const [activeTab, setActiveTab] = useState<ActiveTab>('dashboard');
@@ -378,20 +603,43 @@ export default function App() {
   const getClient = (clientId: string) => clients.find(c => c.id === clientId) || null;
   const getSeller = (sellerId: string) => sellers.find(s => s.id === sellerId) || null;
 
+  // Isolamento estrito por Empresa:
+  // super_admin pode controlar a empresa selecionada; admin_geral e vendedor ficam bloqueados à sua company_id
+  const activeCompanyId = isSuperAdminRole(currentUser?.role)
+    ? (company.id || 'default_company')
+    : (currentUser?.companyId || company.id || 'default_company');
+  const companyDebts = debts.filter(d => (d.companyId || 'default_company') === activeCompanyId);
+  const companyClients = clients.filter(c => (c.companyId || 'default_company') === activeCompanyId);
+  const companySellers = sellers.filter(s => (s.companyId || 'default_company') === activeCompanyId);
+
   // Filtragem estrita conforme o perfil do utilizador:
   // VENDEDOR SÓ PODE VER OS SEUS PRÓPRIOS CLIENTES E AS SUAS PRÓPRIAS VENDAS!
   const isSellerRole = currentUser?.role === 'vendedor';
 
   const visibleDebts = isSellerRole
-    ? debts.filter(d => d.sellerId === currentUser?.id || d.sellerId === currentUser?.name)
-    : debts;
+    ? companyDebts.filter(
+        d =>
+          d.sellerId === currentUser?.id ||
+          (currentUser?.sellerId && d.sellerId === currentUser.sellerId) ||
+          d.sellerId === currentUser?.name
+      )
+    : companyDebts;
 
   const visibleClients = isSellerRole
-    ? clients.filter(c => 
-        (c.createdBySellerId && c.createdBySellerId === currentUser?.id) ||
-        debts.some(d => (d.sellerId === currentUser?.id || d.sellerId === currentUser?.name) && d.clientId === c.id)
+    ? companyClients.filter(
+        c =>
+          (c.createdBySellerId &&
+            (c.createdBySellerId === currentUser?.id ||
+              (currentUser?.sellerId && c.createdBySellerId === currentUser.sellerId))) ||
+          companyDebts.some(
+            d =>
+              (d.sellerId === currentUser?.id ||
+                (currentUser?.sellerId && d.sellerId === currentUser.sellerId) ||
+                d.sellerId === currentUser?.name) &&
+              d.clientId === c.id
+          )
       )
-    : clients;
+    : companyClients;
 
   // Contagem de vencidas para o badge no Navbar
   const overdueCount = visibleDebts.filter(d => getRemainingBalance(d) > 0 && getDaysDiff(d.dueDate) > 0).length;
@@ -453,6 +701,7 @@ export default function App() {
         clientType: 'particular',
         creditLimit: 500000,
         createdBySellerId: newDebtData.sellerId || currentUser?.id,
+        companyId: activeCompanyId,
         createdAt: new Date().toISOString(),
       };
       setClients(prev => {
@@ -469,6 +718,7 @@ export default function App() {
     const newDebt: Debt = {
       ...newDebtData,
       id: `debt-${Date.now()}`,
+      companyId: newDebtData.companyId || activeCompanyId,
       payments: [],
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -606,6 +856,7 @@ export default function App() {
       ...newClientData,
       id: `cli-${Date.now()}`,
       createdBySellerId: currentUser?.id,
+      companyId: newClientData.companyId || activeCompanyId,
       createdAt: new Date().toISOString(),
     };
     setClients(prev => [...prev, newClient]);
@@ -619,40 +870,125 @@ export default function App() {
     });
   };
 
-  // Bloqueio de Segurança: Vendedor não tem permissão para aceder a 'sellers' ou 'settings'
+  // Bloqueio de Segurança: Restrição estrita por perfil
   useEffect(() => {
-    if (currentUser?.role === 'vendedor' && (activeTab === 'sellers' || activeTab === 'settings')) {
+    if (!currentUser) return;
+    if (currentUser.role === 'vendedor' && (activeTab === 'companies' || activeTab === 'sellers' || activeTab === 'settings')) {
+      setActiveTab('dashboard');
+    } else if (isCompanyAdminRole(currentUser.role) && activeTab === 'companies') {
       setActiveTab('dashboard');
     }
   }, [currentUser, activeTab]);
 
-  const handleAddSeller = (newSellerData: Omit<Seller, 'id'>) => {
-    const newSeller: Seller = {
-      ...newSellerData,
-      id: `sel-${Date.now()}`,
-    };
-    setSellers(prev => [...prev, newSeller]);
-    saveSellerToSupabase(newSeller).then(res => {
-      if (res.success) {
-        setIsSupabaseSynced(true);
-        setLastSyncTime(new Date().toLocaleTimeString('pt-AO'));
-      }
-    }).catch(err => {
-      console.warn('Erro ao salvar vendedor no Supabase:', err);
+  const handleAddSeller = async (input: CreateUserInput): Promise<{ success: boolean; error?: string }> => {
+    const res = await createAuthorizedUtilizador({
+      name: input.name,
+      email: input.email,
+      password: input.password,
+      phone: input.phone,
+      branch: input.branch,
+      role: input.role,
+      companyId: input.companyId || activeCompanyId,
     });
+
+    if (!res.success || !res.user) {
+      return { success: false, error: res.error || 'Erro ao criar utilizador no servidor.' };
+    }
+
+    const createdUser = res.user;
+    setUtilizadores(prev => [createdUser, ...prev.filter(u => u.id !== createdUser.id)]);
+    if (createdUser.companyId) {
+      const mirroredSeller: Seller = {
+        id: createdUser.sellerId || createdUser.id,
+        name: createdUser.name,
+        phone: createdUser.phone || '',
+        branch: createdUser.branch || 'Sede',
+        email: createdUser.email,
+        role: createdUser.role,
+        companyId: createdUser.companyId,
+        isActive: createdUser.isActive,
+        createdAt: createdUser.createdAt || new Date().toISOString().slice(0, 10),
+      };
+      setSellers(prev => [mirroredSeller, ...prev.filter(s => s.id !== mirroredSeller.id)]);
+    }
+    setIsSupabaseSynced(true);
+    setLastSyncTime(new Date().toLocaleTimeString('pt-AO'));
+    return { success: true };
   };
 
-  const handleDeleteSeller = (sellerId: string) => {
-    setSellers(prev => prev.filter(s => s.id !== sellerId));
-    deleteSellerFromSupabase(sellerId).catch(() => {});
+  const handleUpdateSeller = async (input: UpdateUserInput): Promise<{ success: boolean; error?: string }> => {
+    const res = await updateAuthorizedUtilizador(input);
+    if (!res.success || !res.user) {
+      return { success: false, error: res.error || 'Erro ao atualizar utilizador no servidor.' };
+    }
+
+    const updated = res.user;
+    setUtilizadores(prev => prev.map(u => (u.id === updated.id ? updated : u)));
+    setSellers(prev =>
+      prev.map(s =>
+        s.id === updated.id || s.id === updated.sellerId
+          ? {
+              ...s,
+              name: updated.name,
+              phone: updated.phone || s.phone,
+              branch: updated.branch || s.branch,
+              email: updated.email,
+              role: updated.role,
+              companyId: updated.companyId || s.companyId,
+              isActive: updated.isActive,
+            }
+          : s
+      )
+    );
+    setIsSupabaseSynced(true);
+    setLastSyncTime(new Date().toLocaleTimeString('pt-AO'));
+    return { success: true };
+  };
+
+  const handleDeleteSeller = async (userId: string): Promise<{ success: boolean; error?: string }> => {
+    const res = await deleteAuthorizedUtilizador(userId);
+    if (!res.success) {
+      alert(res.error || 'Não foi possível remover o utilizador.');
+      return { success: false, error: res.error };
+    }
+    if (res.deactivatedOnly) {
+      setUtilizadores(prev => prev.map(u => (u.id === userId ? { ...u, isActive: false } : u)));
+      setSellers(prev => prev.map(s => (s.id === userId ? { ...s, isActive: false } : s)));
+    } else {
+      setUtilizadores(prev => prev.filter(u => u.id !== userId));
+      setSellers(prev => prev.filter(s => s.id !== userId));
+    }
+    return { success: true };
   };
 
   const handleSaveCompany = (updated: CompanySettings) => {
-    setCompany(updated);
+    if (currentUser && currentUser.role === 'vendedor') return;
+    if (currentUser && isCompanyAdminRole(currentUser.role) && updated.id !== currentUser.companyId) return;
+
+    const compId = updated.id || activeCompanyId || 'default_company';
+    const normalized: CompanySettings = {
+      ...updated,
+      id: compId,
+      status: updated.status || 'ativo',
+    };
+
+    setCompany(normalized);
+    setCompanies(prev => {
+      const exists = prev.some(c => (c.id || 'default_company') === compId);
+      const next = exists
+        ? prev.map(c => (c.id || 'default_company') === compId ? normalized : c)
+        : [...prev, normalized];
+      try {
+        localStorage.setItem(STORAGE_KEY_COMPANIES, JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+
     try {
-      localStorage.setItem(STORAGE_KEY_COMPANY, JSON.stringify(updated));
+      localStorage.setItem(STORAGE_KEY_COMPANY, JSON.stringify(normalized));
     } catch {}
-    saveCompanyToSupabase(updated).then(res => {
+
+    saveCompanyToSupabase(normalized).then(res => {
       if (res.success) {
         setIsSupabaseSynced(true);
         setLastSyncTime(new Date().toLocaleTimeString('pt-AO'));
@@ -660,6 +996,31 @@ export default function App() {
     }).catch(err => {
       console.warn('Erro ao salvar configurações da empresa no Supabase:', err);
     });
+  };
+
+  const handleSelectActiveCompany = (companyId: string) => {
+    if (!isSuperAdminRole(currentUser?.role)) return;
+    const found = companies.find(c => (c.id || 'default_company') === companyId);
+    if (found) {
+      setCompany(found);
+      try {
+        localStorage.setItem(STORAGE_KEY_COMPANY, JSON.stringify(found));
+      } catch {}
+    }
+  };
+
+  const handleDeleteCompany = (companyId: string) => {
+    if (!isSuperAdminRole(currentUser?.role)) return;
+    if (companyId === 'default_company') return;
+    setCompanies(prev => {
+      const next = prev.filter(c => (c.id || 'default_company') !== companyId);
+      if ((company.id || 'default_company') === companyId) {
+        const fallback = next.find(c => c.id === 'default_company') || next[0] || initialCompanySettings;
+        setCompany(fallback);
+      }
+      return next;
+    });
+    deleteCompanyFromSupabase(companyId).catch(() => {});
   };
 
   const handleRestoreDemoData = () => {
@@ -695,12 +1056,47 @@ export default function App() {
     window.open(`https://wa.me/${finalPhone}?text=${encodeURIComponent(text)}`, '_blank');
   };
 
-  // Se não estiver autenticado, exibe a Página de Login Corporativa da NEUROJUS
+  // Enquanto verifica persistência da sessão Supabase Auth, protege páginas privadas
+  if (isAuthChecking) {
+    return (
+      <div className="min-h-screen bg-slate-950 bg-gradient-to-br from-emerald-950 via-slate-900 to-emerald-950 flex flex-col justify-center items-center p-6 text-white">
+        <div className="w-12 h-12 rounded-2xl bg-emerald-600/20 border border-emerald-500/40 flex items-center justify-center mb-3 animate-pulse">
+          <div className="w-6 h-6 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin" />
+        </div>
+        <p className="text-xs font-semibold text-emerald-200 tracking-wide">
+          A verificar sessão autenticada no Supabase...
+        </p>
+      </div>
+    );
+  }
+
+  // Se estiver a redefinir palavra-passe ou não estiver autenticado, exibe LoginPage segura
+  if (isPasswordRecovery) {
+    return (
+      <LoginPage
+        company={company}
+        initialMode="reset"
+        onLoginSuccess={handleLoginSuccess}
+        onPasswordResetDone={async () => {
+          setIsPasswordRecovery(false);
+          const { data } = await supabase.auth.getSession();
+          if (data?.session?.user) {
+            const val = await validateAuthenticatedUser(data.session.user);
+            if (val.ok) {
+              handleLoginSuccess(val.user, val.company);
+              return;
+            }
+          }
+        }}
+      />
+    );
+  }
+
   if (!currentUser) {
     return (
       <LoginPage
-        sellers={sellers}
         company={company}
+        externalError={authError}
         onLoginSuccess={handleLoginSuccess}
       />
     );
@@ -760,11 +1156,24 @@ export default function App() {
 
         {/* Viewport Principal dos Módulos */}
         <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-24 lg:pb-12">
+          {activeTab === 'companies' && currentUser?.role === 'super_admin' && (
+            <CompaniesManagementView
+              companies={companies}
+              activeCompanyId={activeCompanyId}
+              onSelectActiveCompany={handleSelectActiveCompany}
+              onSaveCompany={handleSaveCompany}
+              onDeleteCompany={handleDeleteCompany}
+              sellers={sellers}
+              clients={clients}
+              debts={debts}
+            />
+          )}
+
           {activeTab === 'dashboard' && (
             <DashboardView
-              debts={debts}
-              clients={clients}
-              sellers={sellers}
+              debts={companyDebts}
+              clients={companyClients}
+              sellers={companySellers}
               company={company}
               currentUser={currentUser}
               onNavigateToDebts={handleNavigateToDebts}
@@ -781,8 +1190,8 @@ export default function App() {
 
           {activeTab === 'clients' && (
             <ClientsView
-              clients={clients}
-              debts={debts}
+              clients={companyClients}
+              debts={companyDebts}
               currentUser={currentUser}
               company={company}
               onOpenNewClient={() => setIsNewClientOpen(true)}
@@ -799,9 +1208,9 @@ export default function App() {
 
           {activeTab === 'debts' && (
             <DebtsListView
-              debts={debts}
-              clients={clients}
-              sellers={sellers}
+              debts={companyDebts}
+              clients={companyClients}
+              sellers={companySellers}
               company={company}
               currentUser={currentUser}
               initialFilter={initialDebtsFilter}
@@ -816,8 +1225,8 @@ export default function App() {
 
           {activeTab === 'payments' && (
             <PaymentsView
-              debts={debts}
-              clients={clients}
+              debts={companyDebts}
+              clients={companyClients}
               currentUser={currentUser}
               company={company}
               onOpenPayment={d => setSelectedDebtForPayment(d)}
@@ -828,9 +1237,9 @@ export default function App() {
 
           {activeTab === 'receipts' && (
             <DigitalReceiptsView
-              debts={debts}
-              clients={clients}
-              sellers={sellers}
+              debts={companyDebts}
+              clients={companyClients}
+              sellers={companySellers}
               company={company}
               currentUser={currentUser}
               onPrintDebt={d => setPrintingDebt(d)}
@@ -842,8 +1251,8 @@ export default function App() {
 
           {activeTab === 'notifications' && (
             <NotificationsView
-              debts={debts}
-              clients={clients}
+              debts={companyDebts}
+              clients={companyClients}
               company={company}
               currentUser={currentUser}
               onOpen5DayReminders={() => setIsAutoReminderOpen(true)}
@@ -854,9 +1263,9 @@ export default function App() {
 
           {activeTab === 'reports' && (
             <FinancialReportsView
-              debts={debts}
-              clients={clients}
-              sellers={sellers}
+              debts={companyDebts}
+              clients={companyClients}
+              sellers={companySellers}
               company={company}
               currentUser={currentUser}
             />
@@ -864,39 +1273,47 @@ export default function App() {
 
           {activeTab === 'audit' && (
             <AuditTrailView
-              debts={debts}
-              clients={clients}
+              debts={companyDebts}
+              clients={companyClients}
               currentUser={currentUser}
               onViewDebtDetail={d => setSelectedDebtForDetail(d)}
             />
           )}
 
-          {activeTab === 'sellers' && currentUser?.role === 'admin' && (
+          {activeTab === 'sellers' && isAdminOrSuperRole(currentUser?.role) && (
             <SellersView
-              sellers={sellers}
-              debts={debts}
+              sellers={isSuperAdminRole(currentUser?.role) ? sellers : companySellers}
+              utilizadores={
+                isSuperAdminRole(currentUser?.role)
+                  ? utilizadores
+                  : utilizadores.filter(u => u.companyId === activeCompanyId && u.role !== 'super_admin')
+              }
+              debts={isSuperAdminRole(currentUser?.role) ? debts : companyDebts}
               currentUser={currentUser}
               onAddSeller={handleAddSeller}
+              onUpdateSeller={handleUpdateSeller}
               onDeleteSeller={handleDeleteSeller}
+              companies={companies}
+              currentCompanyId={activeCompanyId}
               onFilterDebtsBySeller={(sellerId) => {
                 setActiveTab('debts');
               }}
             />
           )}
 
-          {activeTab === 'settings' && currentUser?.role === 'admin' && (
+          {activeTab === 'settings' && isAdminOrSuperRole(currentUser?.role) && (
             <CompanySettingsView
               company={company}
               onSaveCompany={handleSaveCompany}
-              debts={debts}
-              clients={clients}
-              sellers={sellers}
+              debts={companyDebts}
+              clients={companyClients}
+              sellers={companySellers}
               onRestoreDemoData={handleRestoreDemoData}
               onImportAllData={handleImportAllData}
             />
           )}
 
-          {activeTab === 'settings' && currentUser?.role !== 'admin' && (
+          {activeTab === 'settings' && !isAdminOrSuperRole(currentUser?.role) && (
             <div className="p-8 text-center max-w-md mx-auto bg-white rounded-2xl border border-emerald-100 shadow-sm space-y-3 my-8">
               <div className="w-12 h-12 bg-emerald-100 text-emerald-800 rounded-full flex items-center justify-center mx-auto font-bold text-xl shadow-xs">
                 🛡️
@@ -1012,8 +1429,8 @@ export default function App() {
           onClose={() => setIsNewDebtOpen(false)}
           onSave={handleCreateDebt}
           clients={visibleClients}
-          sellers={sellers}
-          debts={debts}
+          sellers={companySellers}
+          debts={companyDebts}
           company={company}
           currentUser={currentUser}
           onOpenNewClient={() => setIsNewClientOpen(true)}

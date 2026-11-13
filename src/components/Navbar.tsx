@@ -15,7 +15,7 @@ import {
   ChevronDown,
   Globe
 } from 'lucide-react';
-import { AuthUser } from '../types/debt';
+import { AuthUser, isAdminOrSuperRole, isSuperAdminRole } from '../types/debt';
 import { LanguageSelector } from './LanguageSelector';
 import { useLanguage } from '../i18n/LanguageContext';
 
@@ -50,7 +50,8 @@ export const Navbar: React.FC<NavbarProps> = ({
 }) => {
   const { t } = useLanguage();
   const [showUserDropdown, setShowUserDropdown] = useState(false);
-  const isAdmin = currentUser?.role === 'admin';
+  const isSuperAdmin = isSuperAdminRole(currentUser?.role);
+  const isAdmin = isAdminOrSuperRole(currentUser?.role);
 
   return (
     <>
@@ -205,14 +206,14 @@ export const Navbar: React.FC<NavbarProps> = ({
                     title={`Sessão: ${currentUser.name}`}
                   >
                     <div className="w-7 h-7 rounded-lg bg-teal-800 text-white flex items-center justify-center font-bold text-xs shrink-0">
-                      {currentUser.role === 'admin' ? 'A' : currentUser.name.slice(0, 1).toUpperCase()}
+                      {isSuperAdmin ? 'SA' : isAdmin ? 'AG' : currentUser.name.slice(0, 1).toUpperCase()}
                     </div>
                     <div className="hidden xl:flex flex-col pr-1">
                       <span className="text-xs font-bold text-slate-900 leading-tight truncate max-w-[100px]">
                         {currentUser.name.split(' ')[0]}
                       </span>
                       <span className="text-[10px] font-semibold text-teal-700 uppercase">
-                        {currentUser.role === 'admin' ? t('role.admin', 'Administrador') : t('role.seller', 'Vendedor')}
+                        {isSuperAdmin ? 'Super Admin' : isAdmin ? t('role.admin', 'Admin Geral') : t('role.seller', 'Vendedor')}
                       </span>
                     </div>
                     <ChevronDown className="w-3.5 h-3.5 text-slate-500" />
@@ -229,11 +230,11 @@ export const Navbar: React.FC<NavbarProps> = ({
                         <div className="text-slate-500 font-mono text-[11px] truncate">{currentUser.email}</div>
                         <div className="mt-1">
                           <span className={`inline-block px-2 py-0.5 text-[10px] font-bold rounded-full ${
-                            currentUser.role === 'admin' 
+                            isAdmin
                               ? 'bg-teal-100 text-teal-900' 
                               : 'bg-amber-100 text-amber-900'
                           }`}>
-                            {currentUser.role === 'admin' ? `🛡️ ${t('role.admin', 'Administrador Geral')}` : `💼 ${t('role.seller', 'Vendedor Comercial')}`}
+                            {isSuperAdmin ? '🛡️ Super Administrador' : isAdmin ? `🛡️ ${t('role.admin', 'Administrador Geral')}` : `💼 ${t('role.seller', 'Vendedor Comercial')}`}
                           </span>
                         </div>
                         {currentUser.branch && (
@@ -263,7 +264,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                           className="w-full px-4 py-2 text-left hover:bg-slate-50 flex items-center gap-2 text-slate-700"
                         >
                           <Receipt className="w-4 h-4 text-slate-400" />
-                          <span>{currentUser.role === 'admin' ? t('nav.debts', 'Todas as Dívidas') : t('nav.my_debts', 'Minhas Cobranças')}</span>
+                          <span>{isAdmin ? t('nav.debts', 'Todas as Dívidas') : t('nav.my_debts', 'Minhas Cobranças')}</span>
                         </button>
 
                         {isAdmin && (

@@ -22,10 +22,45 @@ export interface Client {
   creditLimit: number; // Limite em Kwanzas (Kz)
   notes?: string;
   createdBySellerId?: string; // ID do vendedor que registou o cliente
+  companyId?: string; // ID da empresa proprietária
   createdAt: string;
 }
 
-export type UserRole = 'admin' | 'vendedor';
+export type UserRole = 'super_admin' | 'admin_geral' | 'vendedor';
+
+export function normalizeUserRole(rawRole?: string | null): UserRole {
+  const val = String(rawRole || '').trim().toLowerCase();
+  if (val === 'super_admin' || val === 'superadmin') return 'super_admin';
+  if (val === 'admin_geral' || val === 'admin' || val === 'administrador' || val === 'company_admin') return 'admin_geral';
+  return 'vendedor';
+}
+
+export function isSuperAdminRole(role?: string | null): boolean {
+  return normalizeUserRole(role) === 'super_admin';
+}
+
+export function isCompanyAdminRole(role?: string | null): boolean {
+  return normalizeUserRole(role) === 'admin_geral';
+}
+
+export function isAdminOrSuperRole(role?: string | null): boolean {
+  const normalized = normalizeUserRole(role);
+  return normalized === 'super_admin' || normalized === 'admin_geral';
+}
+
+export interface Utilizador {
+  id: string;
+  authUserId?: string;
+  name: string;
+  email: string;
+  phone?: string;
+  role: UserRole;
+  companyId?: string;
+  isActive: boolean;
+  branch?: string;
+  sellerId?: string;
+  createdAt?: string;
+}
 
 export interface AuthUser {
   id: string;
@@ -34,6 +69,9 @@ export interface AuthUser {
   phone: string;
   role: UserRole;
   branch?: string;
+  companyId?: string;
+  sellerId?: string;
+  isActive?: boolean;
 }
 
 export interface Seller {
@@ -42,8 +80,9 @@ export interface Seller {
   phone: string;
   branch: string; // Filial / Ponto de venda
   email?: string;
-  password?: string; // Senha para login no sistema
   role?: UserRole;
+  companyId?: string;
+  isActive?: boolean;
   createdAt?: string;
 }
 
@@ -89,6 +128,7 @@ export interface Debt {
   invoiceNumber: string; // Ex: FT 2026/0412, Guia Crédito #104
   clientId: string;
   sellerId: string;
+  companyId?: string; // ID da empresa proprietária
   customerName?: string; // Nome direto registado na dívida
   customerPhone: string; // Telefone / WhatsApp registado obrigatoriamente para avisos
   issueDate: string; // Data da venda / emissão (YYYY-MM-DD)
@@ -124,6 +164,7 @@ export interface Debt {
 }
 
 export interface CompanySettings {
+  id?: string;
   name: string;
   nif: string;
   phone: string;
@@ -140,5 +181,19 @@ export interface CompanySettings {
   autoAlertNotifications: boolean;
   senha?: string; // Senha da empresa / Administrador
   password?: string; // Sinónimo para compatibilidade
+  status?: 'ativo' | 'inativo';
+  superAdminId?: string;
+  createdAt?: string;
 }
+
+export interface SuperAdmin {
+  id: string;
+  name: string;
+  email: string;
+  phone?: string;
+  password?: string;
+  isActive?: boolean;
+  createdAt?: string;
+}
+
 

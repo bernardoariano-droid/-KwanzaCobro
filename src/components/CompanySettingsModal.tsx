@@ -61,8 +61,6 @@ export const CompanySettingsView: React.FC<CompanySettingsModalProps> = ({
   const { language, setLanguage, languages, t } = useLanguage();
   const [formData, setFormData] = useState<CompanySettings>(company);
   const [savedSuccess, setSavedSuccess] = useState(false);
-  const [showAdminPass, setShowAdminPass] = useState(false);
-  const [isCopiedAddPasswordSql, setIsCopiedAddPasswordSql] = useState(false);
   const [isCopiedRelationshipSql, setIsCopiedRelationshipSql] = useState(false);
 
   // Manter formData atualizado se a prop company mudar
@@ -93,17 +91,7 @@ export const CompanySettingsView: React.FC<CompanySettingsModalProps> = ({
     return () => { mounted = false; };
   }, []);
 
-  const ADD_PASSWORD_SQL = `-- 1. Acrescentar a coluna de senha para a tabela das empresas
-ALTER TABLE public.company_settings ADD COLUMN IF NOT EXISTS senha TEXT DEFAULT 'admin';
 
--- 2. Atualizar a senha de acesso da empresa no Supabase
-UPDATE public.company_settings SET senha = 'admin' WHERE id = 'default_company';`;
-
-  const handleCopyAddPasswordSql = () => {
-    navigator.clipboard.writeText(ADD_PASSWORD_SQL);
-    setIsCopiedAddPasswordSql(true);
-    setTimeout(() => setIsCopiedAddPasswordSql(false), 2500);
-  };
 
   const RELATIONSHIPS_SQL = `-- ====================================================================
 -- KwanzaCobro: Correção de Relacionamentos e Sincronização Automática
@@ -236,7 +224,7 @@ BEGIN
 
     SELECT COALESCE(jsonb_agg(
         jsonb_build_object(
-            'id', s.id, 'name', s.name, 'phone', s.phone, 'branch', s.branch, 'email', s.email, 'password', s.password, 'role', s.role, 'createdAt', s.created_at
+            'id', s.id, 'name', s.name, 'phone', s.phone, 'branch', s.branch, 'email', s.email, 'role', s.role, 'createdAt', s.created_at
         )
     ), '[]'::jsonb) INTO v_sellers FROM public.sellers s;
 
@@ -615,42 +603,15 @@ CREATE TRIGGER trigger_sync_company_to_snapshot AFTER INSERT OR UPDATE OR DELETE
               />
             </div>
 
-            {/* Senha de Acesso do Administrador / Empresa */}
-            <div className="sm:col-span-2 p-3.5 bg-amber-50/50 border border-amber-200/80 rounded-xl space-y-1.5">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <ShieldCheck className="w-4 h-4 text-amber-700" />
-                  <label className="text-xs font-bold text-slate-900">
-                    Senha de Acesso do Administrador / Empresa (Supabase)
-                  </label>
-                </div>
-                <span className="text-[10px] font-bold text-amber-900 bg-amber-100 px-2 py-0.5 rounded">
-                  Coluna: `senha`
+            {/* Nota de Autenticação Segura (Supabase Auth) */}
+            <div className="sm:col-span-2 p-3.5 bg-emerald-50/60 border border-emerald-200/80 rounded-xl flex items-start gap-2.5">
+              <ShieldCheck className="w-4 h-4 text-emerald-700 shrink-0 mt-0.5" />
+              <div className="text-[11px] text-slate-700">
+                <span className="font-bold text-slate-900 block">Autenticação Protegida por Supabase Auth</span>
+                <span>
+                  As credenciais de acesso dos administradores e vendedores desta empresa são geridas de forma encriptada no Supabase Auth através do separador <strong>Utilizadores</strong>, sem armazenamento de palavras-passe em texto simples.
                 </span>
               </div>
-              <div className="relative">
-                <input
-                  type={showAdminPass ? 'text' : 'password'}
-                  value={formData.senha || formData.password || ''}
-                  onChange={e => {
-                    const val = e.target.value;
-                    setFormData({ ...formData, senha: val, password: val });
-                  }}
-                  placeholder="admin"
-                  className="w-full py-2.5 pl-3 pr-10 text-xs font-mono font-bold border border-amber-300 rounded-lg focus:ring-2 focus:ring-amber-500 bg-white"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowAdminPass(!showAdminPass)}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 p-1 cursor-pointer"
-                  title={showAdminPass ? 'Ocultar Senha' : 'Ver Senha'}
-                >
-                  {showAdminPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
-              </div>
-              <span className="text-[10px] text-slate-500 block">
-                Esta senha é utilizada para o login do Administrador Geral e fica sincronizada com a coluna <code className="text-amber-800 font-mono bg-amber-100/60 px-1 rounded">senha</code> da tabela <code className="text-amber-800 font-mono bg-amber-100/60 px-1 rounded">company_settings</code> no Supabase.
-              </span>
             </div>
           </div>
         </div>
@@ -931,55 +892,7 @@ CREATE TRIGGER trigger_sync_company_to_snapshot AFTER INSERT OR UPDATE OR DELETE
           </a>
         </div>
 
-        {/* ======================================================== */}
-        {/* CARD ESPECÍFICO: COMANDO SQL PARA COLUNA DE SENHA       */}
-        {/* ======================================================== */}
-        <div className="p-4 bg-gradient-to-r from-amber-500/10 via-amber-50 to-amber-100/30 border border-amber-300 rounded-xl space-y-3">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-            <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-lg bg-amber-600 text-white flex items-center justify-center font-bold text-xs shadow-2xs">
-                SQL
-              </div>
-              <div>
-                <h4 className="text-xs font-bold text-amber-950">
-                  Comando SQL: Acrescentar Coluna de Senha para a Tabela das Empresas
-                </h4>
-                <p className="text-[11px] text-amber-800">
-                  Execute no <strong>SQL Editor</strong> do Supabase para suportar senhas personalizadas de empresa.
-                </p>
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={handleCopyAddPasswordSql}
-              className="px-3 py-1.5 text-xs font-bold text-amber-900 bg-white border border-amber-300 hover:bg-amber-100 rounded-lg transition-all shadow-2xs flex items-center gap-1.5 cursor-pointer whitespace-nowrap self-start sm:self-auto"
-            >
-              {isCopiedAddPasswordSql ? (
-                <>
-                  <Check className="w-3.5 h-3.5 text-emerald-600" />
-                  <span className="text-emerald-800">Comando Copiado!</span>
-                </>
-              ) : (
-                <>
-                  <Copy className="w-3.5 h-3.5 text-amber-700" />
-                  <span>Copiar Comando SQL</span>
-                </>
-              )}
-            </button>
-          </div>
 
-          <div className="bg-slate-900 text-emerald-400 p-3 rounded-lg font-mono text-[11px] leading-relaxed overflow-x-auto shadow-inner select-all border border-slate-800">
-            <span className="text-slate-400">-- 1. Adicionar a coluna de senha na tabela company_settings</span><br />
-            <span className="text-amber-300 font-bold">ALTER TABLE</span> public.company_settings <span className="text-amber-300 font-bold">ADD COLUMN IF NOT EXISTS</span> senha <span className="text-emerald-300">TEXT DEFAULT</span> <span className="text-emerald-300">&apos;admin&apos;</span>;<br /><br />
-            <span className="text-slate-400">-- 2. Definir ou atualizar a senha da sua empresa</span><br />
-            <span className="text-amber-300 font-bold">UPDATE</span> public.company_settings <span className="text-amber-300 font-bold">SET</span> senha = <span className="text-emerald-300">&apos;admin&apos;</span> <span className="text-amber-300 font-bold">WHERE</span> id = <span className="text-emerald-300">&apos;default_company&apos;</span>;
-          </div>
-          
-          <div className="flex items-center gap-2 text-[10px] text-amber-900">
-            <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
-            <span>A aplicação KwanzaCobro sincroniza automaticamente tanto com a coluna <strong>senha</strong> quanto <strong>password</strong>.</span>
-          </div>
-        </div>
 
         {/* ======================================================== */}
         {/* CARD: RELACIONAMENTOS & SINCRONIZAÇÃO KWANZACOBRO_SYNC  */}

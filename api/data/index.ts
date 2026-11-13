@@ -1,9 +1,13 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { getBackendSupabase } from '../_supabase.js';
+import { authenticateRequest, normalizeServerRole } from '../_supabase.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
-    const supabase = getBackendSupabase();
+    const auth = await authenticateRequest(req);
+    if (!auth.ok) {
+      return res.status(auth.status).json({ success: false, error: auth.error });
+    }
+    const { userSupabase: supabase } = auth;
 
     const [compRes, selRes, cliRes, debtRes, itemsRes, paysRes] = await Promise.all([
       supabase.from('company_settings').select('*').limit(1),
@@ -21,8 +25,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       phone: s.phone,
       branch: s.branch,
       email: s.email,
-      password: s.password || '123',
-      role: s.role || 'vendedor',
+      role: normalizeServerRole(s.role),
+      companyId: s.company_id ? String(s.company_id) : 'default_company',
       createdAt: s.created_at ? String(s.created_at).slice(0, 10) : undefined,
     }));
 

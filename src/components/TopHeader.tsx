@@ -7,7 +7,7 @@ import {
   Cloud, 
   RefreshCw 
 } from 'lucide-react';
-import { AuthUser, CompanySettings } from '../types/debt';
+import { AuthUser, CompanySettings, isAdminOrSuperRole, isSuperAdminRole } from '../types/debt';
 import { ActiveTab } from './Sidebar';
 import { LanguageSelector } from './LanguageSelector';
 import { useLanguage } from '../i18n/LanguageContext';
@@ -49,12 +49,13 @@ export const TopHeader: React.FC<TopHeaderProps> = ({
     switch (tab) {
       case 'dashboard': return t('nav.dashboard', 'Painel Principal');
       case 'clients': return t('nav.clients', 'Clientes');
-      case 'debts': return currentUser?.role === 'admin' ? t('nav.debts', 'Gestão de Dívidas') : t('nav.my_debts', 'Minhas Cobranças');
+      case 'debts': return isAdminOrSuperRole(currentUser?.role) ? t('nav.debts', 'Gestão de Dívidas') : t('nav.my_debts', 'Minhas Cobranças');
       case 'payments': return t('nav.payments', 'Pagamentos');
       case 'receipts': return t('nav.receipts', 'Recibos Digitais');
+      case 'companies': return 'Gestão de Empresas (Super Admin)';
       case 'notifications': return t('nav.notifications', 'Notificações SMS');
       case 'reports': return t('nav.reports', 'Relatórios Financeiros');
-      case 'sellers': return t('nav.sellers', 'Funcionários e Permissões');
+      case 'sellers': return isSuperAdminRole(currentUser?.role) ? 'Controlo de Utilizadores' : t('nav.sellers', 'Funcionários e Permissões');
       case 'settings': return t('nav.settings', 'Configurações');
       case 'audit': return t('nav.audit', 'Histórico de Operações');
       default: return t('nav.dashboard', 'Painel');

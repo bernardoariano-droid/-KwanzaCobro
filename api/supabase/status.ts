@@ -1,17 +1,17 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { getBackendSupabase, SUPABASE_URL, SUPABASE_KEY, SUPABASE_PROJECT_REF } from '../_supabase.js';
+import { getAnonSupabase, SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_PROJECT_REF } from '../_supabase.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const start = Date.now();
   try {
-    const supabase = getBackendSupabase();
+    const supabase = getAnonSupabase();
 
     // 1. Ping endpoint
     const pingRes = await fetch(`${SUPABASE_URL}/rest/v1/`, {
       method: 'GET',
       headers: {
-        apikey: SUPABASE_KEY,
-        Authorization: `Bearer ${SUPABASE_KEY}`,
+        apikey: SUPABASE_ANON_KEY,
+        Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
       },
     });
     const latencyMs = Date.now() - start;

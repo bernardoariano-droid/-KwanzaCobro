@@ -17,12 +17,13 @@ import {
   ShieldCheck,
   Building2
 } from 'lucide-react';
-import { AuthUser, CompanySettings } from '../types/debt';
+import { AuthUser, CompanySettings, isAdminOrSuperRole, isSuperAdminRole } from '../types/debt';
 import { LanguageSelector } from './LanguageSelector';
 import { useLanguage } from '../i18n/LanguageContext';
 
 export type ActiveTab = 
   | 'dashboard' 
+  | 'companies'
   | 'clients' 
   | 'debts' 
   | 'payments' 
@@ -61,9 +62,19 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onCloseMobile,
 }) => {
   const { t } = useLanguage();
-  const isAdmin = currentUser?.role === 'admin';
+  const isSuperAdmin = isSuperAdminRole(currentUser?.role);
+  const isAdmin = isAdminOrSuperRole(currentUser?.role);
 
   const navItems = [
+    ...(isSuperAdmin ? [
+      {
+        group: 'Super Administração',
+        items: [
+          { id: 'companies', label: 'Gestão de Empresas', icon: Building2 },
+          { id: 'sellers', label: 'Controlo de Utilizadores', icon: UserCheck },
+        ],
+      }
+    ] : []),
     {
       group: t('nav.group_main', 'Principal'),
       items: [
@@ -94,12 +105,19 @@ export const Sidebar: React.FC<SidebarProps> = ({
         { id: 'audit', label: t('nav.audit', 'Histórico de Operações'), icon: History },
       ],
     },
-    ...(isAdmin ? [
+    ...(isAdmin && !isSuperAdmin ? [
       {
         group: t('nav.group_admin', 'Administração'),
         items: [
           { id: 'sellers', label: t('nav.sellers', 'Funcionários e Permissões'), icon: UserCheck },
           { id: 'settings', label: t('nav.settings', 'Configurações'), icon: Settings },
+        ],
+      }
+    ] : isSuperAdmin ? [
+      {
+        group: t('nav.group_admin', 'Configurações do Sistema'),
+        items: [
+          { id: 'settings', label: t('nav.settings', 'Configurações Globais'), icon: Settings },
         ],
       }
     ] : []),
@@ -232,14 +250,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <div className="p-2.5 bg-white border border-emerald-100 rounded-xl shadow-2xs flex items-center justify-between gap-2">
               <div className="flex items-center gap-2 min-w-0">
                 <div className="w-8 h-8 rounded-lg bg-emerald-700 text-white flex items-center justify-center font-bold text-xs shrink-0 font-mono">
-                  {currentUser.role === 'admin' ? 'A' : currentUser.name.slice(0, 1).toUpperCase()}
+                  {isSuperAdmin ? 'SA' : isAdmin ? 'AG' : currentUser.name.slice(0, 1).toUpperCase()}
                 </div>
                 <div className="min-w-0">
                   <div className="font-bold text-xs text-slate-900 truncate">
                     {currentUser.name}
                   </div>
                   <span className="text-[10px] text-emerald-700 font-semibold block uppercase">
-                    {currentUser.role === 'admin' ? 'Administrador Geral' : 'Vendedor Comercial'}
+                    {isSuperAdmin ? 'Super Administrador' : isAdmin ? 'Administrador Geral' : 'Vendedor Comercial'}
                   </span>
                 </div>
               </div>
