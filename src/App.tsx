@@ -18,9 +18,6 @@ import {
   isCompanyAdminRole,
 } from './types/debt';
 import { 
-  initialDebts, 
-  initialClients, 
-  initialSellers, 
   initialCompanySettings,
   demoDebts,
   demoClients,
@@ -96,11 +93,11 @@ export default function App() {
   const [utilizadores, setUtilizadores] = useState<Utilizador[]>([]);
 
   const clearCachedTenantData = () => {
-    setDebts(initialDebts);
-    setClients(initialClients);
-    setSellers(initialSellers);
+    setDebts([]);
+    setClients([]);
+    setSellers([]);
     setUtilizadores([]);
-    setCompanies([initialCompanySettings]);
+    setCompanies([]);
     setCompany(initialCompanySettings);
     try {
       localStorage.removeItem(STORAGE_KEY_DEBTS);
@@ -148,33 +145,10 @@ export default function App() {
     setActiveTab('dashboard');
   };
 
-  // Estado Principal com Persistência em LocalStorage
-  const [debts, setDebts] = useState<Debt[]>(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY_DEBTS);
-      return saved ? JSON.parse(saved) : initialDebts;
-    } catch {
-      return initialDebts;
-    }
-  });
-
-  const [clients, setClients] = useState<Client[]>(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY_CLIENTS);
-      return saved ? JSON.parse(saved) : initialClients;
-    } catch {
-      return initialClients;
-    }
-  });
-
-  const [sellers, setSellers] = useState<Seller[]>(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY_SELLERS);
-      return saved ? JSON.parse(saved) : initialSellers;
-    } catch {
-      return initialSellers;
-    }
-  });
+  // Estado Principal sincronizado a 100% com o Banco de Dados Supabase após autenticação
+  const [debts, setDebts] = useState<Debt[]>([]);
+  const [clients, setClients] = useState<Client[]>([]);
+  const [sellers, setSellers] = useState<Seller[]>([]);
 
   const [company, setCompany] = useState<CompanySettings>(() => {
     try {
@@ -184,9 +158,6 @@ export default function App() {
         if (!parsed.logoUrl) {
           parsed.logoUrl = '/assets/aistudio/IMG-20261010-WA0062_2b38905c.jpg';
         }
-        if (!parsed.name || parsed.name.includes('Comercial & Distribuidora Kwanza')) {
-          parsed.name = 'KwanzaCobro - Gestão de Dívidas Empresariais';
-        }
         return parsed;
       }
       return initialCompanySettings;
@@ -195,19 +166,8 @@ export default function App() {
     }
   });
 
-  // Lista de Todas as Empresas e Super Administradores
-  const [companies, setCompanies] = useState<CompanySettings[]>(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY_COMPANIES);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      }
-      return [initialCompanySettings];
-    } catch {
-      return [initialCompanySettings];
-    }
-  });
+  // Lista de Empresas carregadas do Supabase
+  const [companies, setCompanies] = useState<CompanySettings[]>([]);
 
   // Estado de Sincronização com o Backend e Supabase
   const [isSupabaseSynced, setIsSupabaseSynced] = useState(false);

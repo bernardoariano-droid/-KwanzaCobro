@@ -8,8 +8,10 @@ import { fileURLToPath } from 'url';
 import { createClient } from '@supabase/supabase-js';
 import adminUsersHandler from './api/admin/users.js';
 import adminCompaniesHandler from './api/admin/companies.js';
+import authMeHandler from './api/auth/me.js';
 import supabasePullHandler from './api/supabase/pull.js';
 import supabaseSyncHandler from './api/supabase/sync.js';
+import { authenticateRequest } from './api/_supabase.js';
 
 dotenv.config();
 
@@ -388,6 +390,10 @@ app.get('/api/sms/verify-receipt/:transactionId', (req, res) => {
 // -------------------------------------------------------------
 app.get('/api/data', async (req, res) => {
   try {
+    const auth = await authenticateRequest(req);
+    if (!auth.ok) {
+      return res.status(auth.status).json({ success: false, error: auth.error });
+    }
     const data = await readLocalDatabase();
     if (!data) {
       return res.status(404).json({
@@ -421,6 +427,10 @@ app.get('/api/data', async (req, res) => {
 
 app.post('/api/data/sync', async (req, res) => {
   try {
+    const auth = await authenticateRequest(req);
+    if (!auth.ok) {
+      return res.status(auth.status).json({ success: false, error: auth.error });
+    }
     const { debts, clients, sellers, company } = req.body;
     if (!debts && !clients && !sellers && !company) {
       return res.status(400).json({
@@ -555,7 +565,8 @@ app.get('/api/supabase/status', async (req, res) => {
   }
 });
 
-// Endpoints Administrativos (Utilizadores Supabase Auth + public.utilizadores & Empresas)
+// Endpoints Administrativos e Autenticação (Supabase Auth + public.utilizadores)
+app.get('/api/auth/me', async (req, res) => authMeHandler(req as any, res as any));
 app.all('/api/admin/users', async (req, res) => adminUsersHandler(req as any, res as any));
 app.all('/api/admin/companies', async (req, res) => adminCompaniesHandler(req as any, res as any));
 

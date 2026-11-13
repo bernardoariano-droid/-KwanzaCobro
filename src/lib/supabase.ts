@@ -110,6 +110,30 @@ export async function validateAuthenticatedUser(authUser: User): Promise<
   const profile = await fetchUtilizadorProfile(authUser);
 
   if (!profile) {
+    // Fallback autenticado via backend /api/auth/me usando o JWT real do Supabase Auth
+    try {
+      const token = await getSupabaseAccessToken();
+      if (token) {
+        const res = await fetch('/api/auth/me', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const json = await res.json().catch(() => null);
+        if (res.ok && json?.success && json?.user) {
+          return {
+            ok: true,
+            user: json.user,
+            company: json.company,
+          };
+        }
+        if (json?.error) {
+          await supabase.auth.signOut().catch(() => {});
+          return { ok: false, error: json.error };
+        }
+      }
+    } catch {
+      // Continua para mensagem padrão se backend indisponível
+    }
+
     await supabase.auth.signOut().catch(() => {});
     return {
       ok: false,
@@ -706,7 +730,7 @@ export async function pullFromSupabase(): Promise<{
         companyRows.length > 0 || sellers.length > 0 || clients.length > 0 || debts.length > 0 || utilizadores.length > 0
       );
 
-      if (hasAnyRecords) {
+      if (hasAnyRecords || !debtsRes.error || !clientsRes.error || !compRes.error) {
         return {
           success: true,
           hasData: true,

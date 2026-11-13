@@ -110,8 +110,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         penaltyPerDayRate: compRow.penalty_per_day_rate ?? 0.1,
         daysBeforeDueAlert: compRow.days_before_due_alert ?? 5,
         autoAlertNotifications: compRow.auto_alert_notifications ?? true,
-        senha: compRow.senha || compRow.password || 'admin',
-        password: compRow.password || compRow.senha || 'admin',
+        status: compRow.status === 'inativo' ? 'inativo' : 'ativo',
       };
     }
 
