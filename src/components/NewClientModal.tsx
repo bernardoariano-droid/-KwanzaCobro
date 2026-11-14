@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { X, UserPlus, Building2, User, Phone, MapPin, CreditCard } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, UserPlus, Building2, User, Phone, MapPin, CreditCard, AlertCircle } from 'lucide-react';
 import { Client, ClientType } from '../types/debt';
 import { formatKwanza } from '../utils/formatters';
 import { useLanguage } from '../i18n/LanguageContext';
@@ -47,17 +47,35 @@ export const NewClientModal: React.FC<NewClientModalProps> = ({
   const [address, setAddress] = useState('');
   const [creditLimit, setCreditLimit] = useState<number>(5000000); // 5 Milhões Kz padrão
   const [notes, setNotes] = useState('');
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (isOpen) {
+      setName('');
+      setClientType('empresa');
+      setNif('');
+      setPhone('+244 9');
+      setEmail('');
+      setProvince('Luanda');
+      setMunicipality('');
+      setAddress('');
+      setCreditLimit(5000000);
+      setNotes('');
+      setErrorMsg(null);
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setErrorMsg(null);
     if (!name.trim()) {
-      alert('O Nome do Cliente é obrigatório.');
+      setErrorMsg('O Nome do Cliente é obrigatório.');
       return;
     }
-    if (!phone.trim()) {
-      alert('O Telefone é obrigatório para notificações e cobranças.');
+    if (!phone.trim() || phone.replace(/\D/g, '').length < 9) {
+      setErrorMsg('O Telefone é obrigatório para notificações e cobranças (mínimo 9 dígitos).');
       return;
     }
 
@@ -98,7 +116,13 @@ export const NewClientModal: React.FC<NewClientModalProps> = ({
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4 max-h-[80vh] overflow-y-auto">
+        <form onSubmit={handleSubmit} noValidate className="p-6 space-y-4 max-h-[80vh] overflow-y-auto">
+          {errorMsg && (
+            <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-800 flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+              <span>{errorMsg}</span>
+            </div>
+          )}
           {/* Tipo de Cliente */}
           <div className="flex items-center gap-4">
             <label className="text-xs font-semibold text-slate-700">Tipo de Cliente:</label>

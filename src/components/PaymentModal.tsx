@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   X, 
   CreditCard, 
@@ -38,10 +38,8 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
   currentUserName = 'Operador Comercial',
 }) => {
   const { t } = useLanguage();
-  if (!isOpen || !debt) return null;
-
-  const previouslyPaid = getPaidAmount(debt);
-  const remaining = getRemainingBalance(debt);
+  const previouslyPaid = debt ? getPaidAmount(debt) : 0;
+  const remaining = debt ? getRemainingBalance(debt) : 0;
 
   const [amount, setAmount] = useState<number>(remaining);
   const [paymentDate, setPaymentDate] = useState<string>(new Date().toISOString().slice(0, 10));
@@ -50,13 +48,35 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
   const [notes, setNotes] = useState<string>('');
   const [receivedBy, setReceivedBy] = useState<string>(currentUserName);
   const [sendWhatsAppConfirmation, setSendWhatsAppConfirmation] = useState<boolean>(true);
+  const [validationError, setValidationError] = useState<string | null>(null);
+  const [confirmExceedPending, setConfirmExceedPending] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (isOpen && debt) {
+      setAmount(remaining);
+      setPaymentDate(new Date().toISOString().slice(0, 10));
+      setPaymentMethod('multicaixa_express');
+      setReceiptRef('');
+      setNotes('');
+      setReceivedBy(currentUserName);
+      setSendWhatsAppConfirmation(true);
+      setValidationError(null);
+      setConfirmExceedPending(false);
+    }
+  }, [isOpen, debt?.id, remaining, currentUserName]);
+
+  if (!isOpen || !debt) return null;
 
   const handlePayFull = () => {
     setAmount(remaining);
+    setValidationError(null);
+    setConfirmExceedPending(false);
   };
 
   const handleSetPercentage = (factor: number) => {
     setAmount(Math.round(remaining * factor));
+    setValidationError(null);
+    setConfirmExceedPending(false);
   };
 
   const newBalance = Math.max(0, remaining - (amount || 0));
@@ -64,15 +84,15 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (amount <= 0) {
-      alert('O valor da amortização deve ser superior a 0 Kz.');
+    setValidationError(null);
+
+    if (!Number.isFinite(amount) || amount <= 0) {
+      setValidationError('O valor da amortização deve ser superior a 0 Kz.');
       return;
     }
-    if (amount > remaining) {
-      const confirmExceed = window.confirm(
-        `O valor inserido (${formatKwanza(amount)}) é superior ao saldo devedor restante (${formatKwanza(remaining)}). Deseja continuar mesmo assim?`
-      );
-      if (!confirmExceed) return;
+    if (amount > remaining && !confirmExceedPending) {
+      setConfirmExceedPending(true);
+      return;
     }
 
     onSavePayment(
@@ -187,7 +207,11 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                 step="any"
                 required
                 value={amount || ''}
-                onChange={e => setAmount(Number(e.target.value))}
+                onChange={e => {
+                  setAmount(Number(e.target.value));
+                  setValidationError(null);
+                  setConfirmExceedPending(false);
+                }}
                 placeholder="0 Kz"
                 className="w-full py-2.5 px-3 pr-12 text-base font-bold font-mono text-slate-900 border-2 border-emerald-400 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-emerald-50/20"
               />
@@ -289,7 +313,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                 className="w-full py-2 px-3 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 bg-white"
               >
                 <option value="multicaixa_express">{t('payments.method_mcx', 'Multicaixa Express')}</option>
-                <option value="transferencia">{t('payments.method_transfer', 'Transferência Bancária')}</option>
+                <option value="transferencia_bancaria">{t('payments.method_transfer', 'Transferência Bancária')}</option>
                 <option value="tpa">{t('payments.method_tpa', 'TPA (Cartão Multicaixa)')}</option>
                 <option value="dinheiro">{t('payments.method_cash', 'Dinheiro em Mão')}</option>
                 <option value="deposito">{t('payments.method_deposit', 'Depósito Bancário')}</option>
@@ -363,6 +387,25 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
             />
           </div>
 
+          {validationError && (
+            <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-800 flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+              <span>{validationError}</span>
+            </div>
+          )}
+
+          {confirmExceedPending && (
+            <div className="p-3 bg-amber-50 border border-amber-300 rounded-xl text-xs text-amber-950 flex items-start gap-2">
+              <AlertCircle className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <span className="font-bold block">Valor superior ao saldo restante</span>
+                <span className="text-[11px] text-amber-900">
+                  O valor inserido ({formatKwanza(amount)}) excede o saldo devedor ({formatKwanza(remaining)}). Clique novamente em confirmar para registar.
+                </span>
+              </div>
+            </div>
+          )}
+
           {/* Botões */}
           <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-200">
             <button
@@ -377,7 +420,11 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
               className="px-5 py-2.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 active:scale-95 rounded-lg shadow-sm transition-all flex items-center gap-2 cursor-pointer"
             >
               <CheckCircle2 className="w-4 h-4" />
-              <span>{t('payments.confirm_btn', 'Confirmar Amortização e Diminuir Dívida')}</span>
+              <span>
+                {confirmExceedPending
+                  ? 'Confirmar Mesmo Assim'
+                  : t('payments.confirm_btn', 'Confirmar Amortização e Diminuir Dívida')}
+              </span>
             </button>
           </div>
         </form>

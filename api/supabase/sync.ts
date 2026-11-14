@@ -59,7 +59,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           const { error: compErr } = await supabase
             .from('company_settings')
             .upsert(companyPayload, { onConflict: 'id' });
-          if (!compErr) anySuccess = true;
+          if (!compErr) {
+            anySuccess = true;
+          } else if (compErr.message && compErr.message.includes('column')) {
+            const { status, updated_at, ...fallbackPayload } = companyPayload;
+            const retry = await supabase.from('company_settings').upsert(fallbackPayload, { onConflict: 'id' });
+            if (!retry.error) anySuccess = true;
+          }
         } catch (compErr) {
           console.warn('Erro ao salvar company_settings:', compErr);
         }

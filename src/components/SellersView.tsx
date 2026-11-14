@@ -63,6 +63,8 @@ interface SellersViewProps {
   onFilterDebtsBySeller: (sellerId: string) => void;
   companies?: CompanySettings[];
   currentCompanyId?: string;
+  initialCompanyFilter?: string;
+  onClearCompanyFilter?: () => void;
 }
 
 export const SellersView: React.FC<SellersViewProps> = ({
@@ -76,12 +78,18 @@ export const SellersView: React.FC<SellersViewProps> = ({
   onFilterDebtsBySeller,
   companies = [],
   currentCompanyId = 'default_company',
+  initialCompanyFilter = 'all',
+  onClearCompanyFilter,
 }) => {
   const { t } = useLanguage();
   const [isAdding, setIsAdding] = useState(false);
   const [editingUser, setEditingUser] = useState<Utilizador | null>(null);
-  const [companyFilter, setCompanyFilter] = useState<string>('all');
+  const [companyFilter, setCompanyFilter] = useState<string>(initialCompanyFilter || 'all');
   const [searchTerm, setSearchTerm] = useState('');
+
+  React.useEffect(() => {
+    setCompanyFilter(initialCompanyFilter || 'all');
+  }, [initialCompanyFilter]);
 
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('+244 9');
@@ -383,7 +391,11 @@ export const SellersView: React.FC<SellersViewProps> = ({
               <span className="text-xs font-semibold text-slate-600 whitespace-nowrap">Filtrar por Empresa:</span>
               <select
                 value={companyFilter}
-                onChange={e => setCompanyFilter(e.target.value)}
+                onChange={e => {
+                  const val = e.target.value;
+                  setCompanyFilter(val);
+                  if (val === 'all' && onClearCompanyFilter) onClearCompanyFilter();
+                }}
                 className="flex-1 sm:w-64 py-2 px-3 text-xs border border-emerald-200 rounded-xl bg-emerald-50/40 text-emerald-950 font-semibold focus:ring-2 focus:ring-emerald-600 outline-none"
               >
                 <option value="all">Todas as Empresas ({unifiedUsers.length})</option>
@@ -393,6 +405,18 @@ export const SellersView: React.FC<SellersViewProps> = ({
                   </option>
                 ))}
               </select>
+              {companyFilter !== 'all' && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCompanyFilter('all');
+                    if (onClearCompanyFilter) onClearCompanyFilter();
+                  }}
+                  className="px-2.5 py-2 text-[11px] font-bold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-xl whitespace-nowrap cursor-pointer"
+                >
+                  Limpar
+                </button>
+              )}
             </div>
           )}
         </div>

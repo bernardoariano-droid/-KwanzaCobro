@@ -75,7 +75,12 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   // Escopo de visualização por função: vendedor só vê as faturas atribuídas a ele
   const effectiveDebts = useMemo(() => {
     if (isSeller && currentUser) {
-      return debts.filter(d => d.sellerId === currentUser.id || d.sellerId === currentUser.name);
+      return debts.filter(
+        d =>
+          d.sellerId === currentUser.id ||
+          (currentUser.sellerId && d.sellerId === currentUser.sellerId) ||
+          d.sellerId === currentUser.name
+      );
     }
     return debts;
   }, [debts, isSeller, currentUser]);
@@ -83,9 +88,15 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const effectiveClients = useMemo(() => {
     if (isSeller && currentUser) {
       return clients.filter(c => {
-        const isCreatedByHim = c.createdBySellerId === currentUser.id;
-        const hasHisDebt = debts.some(d => 
-          d.clientId === c.id && (d.sellerId === currentUser.id || d.sellerId === currentUser.name)
+        const isCreatedByHim =
+          c.createdBySellerId === currentUser.id ||
+          (currentUser.sellerId && c.createdBySellerId === currentUser.sellerId);
+        const hasHisDebt = debts.some(
+          d =>
+            d.clientId === c.id &&
+            (d.sellerId === currentUser.id ||
+              (currentUser.sellerId && d.sellerId === currentUser.sellerId) ||
+              d.sellerId === currentUser.name)
         );
         return isCreatedByHim || hasHisDebt;
       });
@@ -196,7 +207,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     };
     effectiveDebts.forEach(d => {
       d.payments.forEach(p => {
-        map[p.paymentMethod] = (map[p.paymentMethod] || 0) + p.amount;
+        const rawMethod = String(p.paymentMethod);
+        const key = rawMethod === 'transferencia' ? 'transferencia_bancaria' : rawMethod;
+        map[key] = (map[key] || 0) + p.amount;
       });
     });
     return map;

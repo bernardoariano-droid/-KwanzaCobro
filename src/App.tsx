@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Debt,
   Client,
@@ -76,6 +76,21 @@ import {
   subscribeToSupabaseChanges, 
   testSupabaseConnection 
 } from './lib/supabase';
+import {
+  AppAuthMode,
+  getSavedAuthMode,
+  setSavedAuthMode,
+  getLocalToken,
+  fetchLocalSessionUser,
+  signOutLocalhost,
+  pullFromLocalhost,
+  syncToLocalhost,
+  createLocalUtilizador,
+  updateLocalUtilizador,
+  deleteLocalUtilizador,
+  saveLocalCompany,
+  deleteLocalCompany,
+} from './lib/localStore';
 
 const STORAGE_KEY_DEBTS = 'kwanzacobro_debts_v2';
 const STORAGE_KEY_CLIENTS = 'kwanzacobro_clients_v2';
@@ -85,12 +100,22 @@ const STORAGE_KEY_COMPANIES = 'kwanzacobro_companies_v2';
 
 export default function App() {
   const { t } = useLanguage();
-  // Estado de Autenticação Real via Supabase Auth + public.utilizadores
+  // Estado de Autenticação Dual: Modo Localhost (Base JSON Local) ou Supabase Auth
+  const [authMode, setAuthMode] = useState<AppAuthMode>(() => getSavedAuthMode() || 'localhost');
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
   const [isAuthChecking, setIsAuthChecking] = useState<boolean>(true);
   const [isPasswordRecovery, setIsPasswordRecovery] = useState<boolean>(false);
   const [authError, setAuthError] = useState<string | null>(null);
   const [utilizadores, setUtilizadores] = useState<Utilizador[]>([]);
+  const [appNotice, setAppNotice] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const hasLoadedCloudDataRef = useRef<boolean>(false);
+
+  const showAppNotice = (type: 'success' | 'error', message: string) => {
+    setAppNotice({ type, message });
+    setTimeout(() => {
+      setAppNotice(prev => (prev?.message === message ? null : prev));
+    }, 4500);
+  };
 
   const clearCachedTenantData = () => {
     setDebts([]);
@@ -108,7 +133,14 @@ export default function App() {
     } catch {}
   };
 
-  const handleLoginSuccess = (user: AuthUser, matchedCompany?: CompanySettings) => {
+  const handleLoginSuccess = (
+    user: AuthUser,
+    matchedCompany?: CompanySettings,
+    mode?: AppAuthMode
+  ) => {
+    const resolvedMode: AppAuthMode = mode || getSavedAuthMode() || 'localhost';
+    setAuthMode(resolvedMode);
+    setSavedAuthMode(resolvedMode);
     setAuthError(null);
     setIsPasswordRecovery(false);
     setCurrentUser(user);
@@ -134,14 +166,20 @@ export default function App() {
   };
 
   const handleLogout = async () => {
+    signOutLocalhost();
     try {
       await signOutSupabaseAuth();
     } catch (e) {
       console.error('Erro ao terminar sessão no Supabase Auth', e);
     }
+    hasLoadedCloudDataRef.current = false;
     setCurrentUser(null);
     setIsPasswordRecovery(false);
     clearCachedTenantData();
+    setSellersCompanyFilter('all');
+    setDebtsClientFilter('all');
+    setDebtsSellerFilter('all');
+    setPreselectedClientIdForDebt(undefined);
     setActiveTab('dashboard');
   };
 
@@ -175,7 +213,7 @@ export default function App() {
   const [lastSyncTime, setLastSyncTime] = useState<string>('');
   const [isManualSyncing, setIsManualSyncing] = useState<boolean>(false);
 
-  // 1. Verificar sessão persistida do Supabase Auth e escutar eventos de Auth (incluindo PASSWORD_RECOVERY)
+  // 1. Verificar sessão persistida (Localhost ou Supabase Auth) e escutar eventos de Auth
   useEffect(() => {
     let isMounted = true;
 
@@ -187,12 +225,35 @@ export default function App() {
 
     const restoreSession = async () => {
       try {
+        // Se existe sessão localhost ativa e o modo guardado é localhost (ou não há recovery)
+        const localToken = getLocalToken();
+        const savedMode = getSavedAuthMode();
+        if (localToken && !hashHasRecovery && savedMode !== 'supabase') {
+          const localRes = await fetchLocalSessionUser();
+          if (!isMounted) return;
+          if (localRes.ok) {
+            setAuthMode('localhost');
+            setSavedAuthMode('localhost');
+            setCurrentUser(localRes.user);
+            if (localRes.company) setCompany(localRes.company);
+            if (isSuperAdminRole(localRes.user.role)) {
+              setActiveTab(prev => (prev === 'dashboard' ? 'companies' : prev));
+            }
+            return;
+          }
+          if (localRes.error) {
+            setAuthError(localRes.error);
+          }
+        }
+
         const { data } = await supabase.auth.getSession();
         const sessionUser = data?.session?.user;
         if (sessionUser && isMounted) {
           const validation = await validateAuthenticatedUser(sessionUser);
           if (!isMounted) return;
           if (validation.ok) {
+            setAuthMode('supabase');
+            setSavedAuthMode('supabase');
             setCurrentUser(validation.user);
             if (validation.company) {
               setCompany(validation.company);
@@ -219,12 +280,16 @@ export default function App() {
       if (!isMounted) return;
 
       if (event === 'PASSWORD_RECOVERY') {
+        setAuthMode('supabase');
         setIsPasswordRecovery(true);
         setIsAuthChecking(false);
         return;
       }
 
       if (event === 'SIGNED_OUT') {
+        if (getLocalToken() && getSavedAuthMode() === 'localhost') {
+          return;
+        }
         setCurrentUser(null);
         setIsPasswordRecovery(false);
         clearCachedTenantData();
@@ -233,9 +298,15 @@ export default function App() {
       }
 
       if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') && session?.user) {
+        // Durante migração a partir do modo localhost, manter sessão localhost ativa sem interromper UI
+        if (getLocalToken() && getSavedAuthMode() === 'localhost') {
+          return;
+        }
         const validation = await validateAuthenticatedUser(session.user);
         if (!isMounted) return;
         if (validation.ok) {
+          setAuthMode('supabase');
+          setSavedAuthMode('supabase');
           setAuthError(null);
           setCurrentUser(validation.user);
           if (validation.company) {
@@ -255,10 +326,50 @@ export default function App() {
     };
   }, []);
 
-  // 2. Carregar dados autorizados do Supabase SOMENTE após autenticação válida
+  // 2. Carregar dados autorizados do Localhost ou Supabase SOMENTE após autenticação válida
   useEffect(() => {
-    if (!currentUser) return;
+    if (!currentUser) {
+      hasLoadedCloudDataRef.current = false;
+      return;
+    }
     let isMounted = true;
+    hasLoadedCloudDataRef.current = false;
+
+    if (authMode === 'localhost') {
+      const loadLocalhostData = async () => {
+        try {
+          const res = await pullFromLocalhost();
+          if (res.success && res.data && isMounted) {
+            setDebts(res.data.debts);
+            setClients(res.data.clients);
+            setSellers(res.data.sellers);
+            setUtilizadores(res.data.utilizadores);
+            if (Array.isArray(res.data.companies) && res.data.companies.length > 0) {
+              setCompanies(res.data.companies);
+              const preferredId = isSuperAdminRole(currentUser.role)
+                ? (company.id || currentUser.companyId || 'default_company')
+                : (currentUser.companyId || 'default_company');
+              const matched = res.data.companies.find(c => (c.id || 'default_company') === preferredId);
+              setCompany(matched || res.data.company || initialCompanySettings);
+            } else if (res.data.company) {
+              setCompany(res.data.company);
+            }
+            setLastSyncTime(new Date().toLocaleTimeString('pt-AO'));
+          }
+        } catch (err) {
+          console.warn('Erro ao carregar dados do localhost:', err);
+        } finally {
+          if (isMounted) {
+            hasLoadedCloudDataRef.current = true;
+          }
+        }
+      };
+
+      loadLocalhostData();
+      return () => {
+        isMounted = false;
+      };
+    }
 
     const loadAuthorizedCloudData = async () => {
       try {
@@ -370,6 +481,9 @@ export default function App() {
           setSupabaseLatency(health.latencyMs ?? null);
         }
       } catch {}
+      if (isMounted) {
+        hasLoadedCloudDataRef.current = true;
+      }
     };
 
     loadAuthorizedCloudData();
@@ -406,13 +520,24 @@ export default function App() {
       isMounted = false;
       unsubscribe();
     };
-  }, [currentUser?.id, currentUser?.companyId, currentUser?.role]);
+  }, [currentUser?.id, currentUser?.companyId, currentUser?.role, authMode]);
 
   // Sincronização manual acionada pelo utilizador autenticado
   const handleManualSyncNow = async () => {
     if (!currentUser) return;
     setIsManualSyncing(true);
     try {
+      if (authMode === 'localhost') {
+        const localSync = await syncToLocalhost({ debts, clients, sellers, company, companies });
+        if (localSync.success) {
+          setLastSyncTime(new Date().toLocaleTimeString('pt-AO'));
+          showAppNotice('success', 'Dados guardados no Localhost (data/neurojus_db.json) com sucesso!');
+        } else {
+          showAppNotice('error', localSync.message || 'Erro ao guardar no Localhost.');
+        }
+        return;
+      }
+
       const syncRes = await syncToSupabase({ debts, clients, sellers, company, companies });
       if (syncRes.success) {
         setIsSupabaseSynced(true);
@@ -462,7 +587,7 @@ export default function App() {
       setIsSupabaseSynced(true);
       setLastSyncTime(new Date().toLocaleTimeString('pt-AO'));
     } catch (e) {
-      console.warn('Erro na sincronização manual com Supabase:', e);
+      console.warn('Erro na sincronização manual:', e);
     } finally {
       setIsManualSyncing(false);
     }
@@ -514,11 +639,19 @@ export default function App() {
     }
   }, [companies, currentUser]);
 
-  // Sincronização automática autenticada para Supabase / Backend
+  // Sincronização automática autenticada para Localhost ou Supabase
   useEffect(() => {
-    if (!currentUser) return;
+    if (!currentUser || !hasLoadedCloudDataRef.current) return;
     const timer = setTimeout(async () => {
       try {
+        if (authMode === 'localhost') {
+          const localRes = await syncToLocalhost({ debts, clients, sellers, company, companies });
+          if (localRes.success) {
+            setLastSyncTime(new Date().toLocaleTimeString('pt-AO'));
+          }
+          return;
+        }
+
         const token = await getSupabaseAccessToken();
         if (!token) return;
         const supRes = await fetch('/api/supabase/sync', {
@@ -538,14 +671,18 @@ export default function App() {
       } catch {
         // Falha transitória não interrompe o funcionamento local
       }
-    }, 800);
+    }, 500);
 
     return () => clearTimeout(timer);
-  }, [debts, clients, sellers, company, companies, currentUser]);
+  }, [debts, clients, sellers, company, companies, currentUser, authMode]);
 
   // Navegação
   const [activeTab, setActiveTab] = useState<ActiveTab>('dashboard');
   const [initialDebtsFilter, setInitialDebtsFilter] = useState<string>('all');
+  const [debtsClientFilter, setDebtsClientFilter] = useState<string>('all');
+  const [debtsSellerFilter, setDebtsSellerFilter] = useState<string>('all');
+  const [preselectedClientIdForDebt, setPreselectedClientIdForDebt] = useState<string | undefined>(undefined);
+  const [sellersCompanyFilter, setSellersCompanyFilter] = useState<string>('all');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   // Modais
@@ -671,8 +808,10 @@ export default function App() {
         } catch {}
         return updated;
       });
-      // Persistir no Supabase
-      saveClientToSupabase(autoClient).catch(() => {});
+      // Persistir no Supabase quando em modo Cloud
+      if (authMode === 'supabase') {
+        saveClientToSupabase(autoClient).catch(() => {});
+      }
     }
 
     const newDebt: Debt = {
@@ -685,15 +824,17 @@ export default function App() {
     };
     setDebts(prev => [newDebt, ...prev]);
 
-    // Persistência Direta no Supabase
-    saveDebtToSupabase(newDebt).then(res => {
-      if (res.success) {
-        setIsSupabaseSynced(true);
-        setLastSyncTime(new Date().toLocaleTimeString('pt-AO'));
-      }
-    }).catch(err => {
-      console.warn('Erro ao salvar dívida no Supabase:', err);
-    });
+    if (authMode === 'supabase') {
+      // Persistência Direta no Supabase
+      saveDebtToSupabase(newDebt).then(res => {
+        if (res.success) {
+          setIsSupabaseSynced(true);
+          setLastSyncTime(new Date().toLocaleTimeString('pt-AO'));
+        }
+      }).catch(err => {
+        console.warn('Erro ao salvar dívida no Supabase:', err);
+      });
+    }
 
     // GERAÇÃO AUTOMÁTICA DO RECIBO EM PDF APÓS GRAVAR!
     setNewlyCreatedDebtForReceipt(newDebt);
@@ -760,8 +901,8 @@ export default function App() {
         return updatedDebt;
       });
 
-      // Persistir amortização no Supabase
-      if (debtToSave) {
+      // Persistir amortização no Supabase quando em modo Cloud
+      if (debtToSave && authMode === 'supabase') {
         savePaymentToSupabase(debtId, payment, debtToSave).then(res => {
           if (res.success) {
             setIsSupabaseSynced(true);
@@ -796,7 +937,7 @@ export default function App() {
         return updated;
       });
 
-      if (debtToSave) {
+      if (debtToSave && authMode === 'supabase') {
         saveDebtToSupabase(debtToSave).then(res => {
           if (res.success) setIsSupabaseSynced(true);
         }).catch(() => {});
@@ -820,14 +961,16 @@ export default function App() {
       createdAt: new Date().toISOString(),
     };
     setClients(prev => [...prev, newClient]);
-    saveClientToSupabase(newClient).then(res => {
-      if (res.success) {
-        setIsSupabaseSynced(true);
-        setLastSyncTime(new Date().toLocaleTimeString('pt-AO'));
-      }
-    }).catch(err => {
-      console.warn('Erro ao salvar cliente no Supabase:', err);
-    });
+    if (authMode === 'supabase') {
+      saveClientToSupabase(newClient).then(res => {
+        if (res.success) {
+          setIsSupabaseSynced(true);
+          setLastSyncTime(new Date().toLocaleTimeString('pt-AO'));
+        }
+      }).catch(err => {
+        console.warn('Erro ao salvar cliente no Supabase:', err);
+      });
+    }
   };
 
   // Bloqueio de Segurança: Restrição estrita por perfil
@@ -841,7 +984,7 @@ export default function App() {
   }, [currentUser, activeTab]);
 
   const handleAddSeller = async (input: CreateUserInput): Promise<{ success: boolean; error?: string }> => {
-    const res = await createAuthorizedUtilizador({
+    const payload = {
       name: input.name,
       email: input.email,
       password: input.password,
@@ -849,7 +992,12 @@ export default function App() {
       branch: input.branch,
       role: input.role,
       companyId: input.companyId || activeCompanyId,
-    });
+    };
+
+    const res =
+      authMode === 'localhost'
+        ? await createLocalUtilizador(payload)
+        : await createAuthorizedUtilizador(payload);
 
     if (!res.success || !res.user) {
       return { success: false, error: res.error || 'Erro ao criar utilizador no servidor.' };
@@ -871,13 +1019,16 @@ export default function App() {
       };
       setSellers(prev => [mirroredSeller, ...prev.filter(s => s.id !== mirroredSeller.id)]);
     }
-    setIsSupabaseSynced(true);
+    if (authMode === 'supabase') setIsSupabaseSynced(true);
     setLastSyncTime(new Date().toLocaleTimeString('pt-AO'));
     return { success: true };
   };
 
   const handleUpdateSeller = async (input: UpdateUserInput): Promise<{ success: boolean; error?: string }> => {
-    const res = await updateAuthorizedUtilizador(input);
+    const res =
+      authMode === 'localhost'
+        ? await updateLocalUtilizador(input)
+        : await updateAuthorizedUtilizador(input);
     if (!res.success || !res.user) {
       return { success: false, error: res.error || 'Erro ao atualizar utilizador no servidor.' };
     }
@@ -900,15 +1051,18 @@ export default function App() {
           : s
       )
     );
-    setIsSupabaseSynced(true);
+    if (authMode === 'supabase') setIsSupabaseSynced(true);
     setLastSyncTime(new Date().toLocaleTimeString('pt-AO'));
     return { success: true };
   };
 
   const handleDeleteSeller = async (userId: string): Promise<{ success: boolean; error?: string }> => {
-    const res = await deleteAuthorizedUtilizador(userId);
+    const res =
+      authMode === 'localhost'
+        ? await deleteLocalUtilizador(userId)
+        : await deleteAuthorizedUtilizador(userId);
     if (!res.success) {
-      alert(res.error || 'Não foi possível remover o utilizador.');
+      showAppNotice('error', res.error || 'Não foi possível remover o utilizador.');
       return { success: false, error: res.error };
     }
     if (res.deactivatedOnly) {
@@ -921,9 +1075,13 @@ export default function App() {
     return { success: true };
   };
 
-  const handleSaveCompany = (updated: CompanySettings) => {
-    if (currentUser && currentUser.role === 'vendedor') return;
-    if (currentUser && isCompanyAdminRole(currentUser.role) && updated.id !== currentUser.companyId) return;
+  const handleSaveCompany = async (updated: CompanySettings): Promise<{ success: boolean; error?: string }> => {
+    if (currentUser && currentUser.role === 'vendedor') {
+      return { success: false, error: 'Vendedores não podem alterar dados da empresa.' };
+    }
+    if (currentUser && isCompanyAdminRole(currentUser.role) && updated.id !== currentUser.companyId) {
+      return { success: false, error: 'Administrador Geral só pode gerir a sua própria empresa.' };
+    }
 
     const compId = updated.id || activeCompanyId || 'default_company';
     const normalized: CompanySettings = {
@@ -932,30 +1090,37 @@ export default function App() {
       status: updated.status || 'ativo',
     };
 
-    setCompany(normalized);
-    setCompanies(prev => {
-      const exists = prev.some(c => (c.id || 'default_company') === compId);
-      const next = exists
-        ? prev.map(c => (c.id || 'default_company') === compId ? normalized : c)
-        : [...prev, normalized];
-      try {
-        localStorage.setItem(STORAGE_KEY_COMPANIES, JSON.stringify(next));
-      } catch {}
-      return next;
-    });
-
     try {
-      localStorage.setItem(STORAGE_KEY_COMPANY, JSON.stringify(normalized));
-    } catch {}
-
-    saveCompanyToSupabase(normalized).then(res => {
-      if (res.success) {
-        setIsSupabaseSynced(true);
-        setLastSyncTime(new Date().toLocaleTimeString('pt-AO'));
+      const res =
+        authMode === 'localhost'
+          ? await saveLocalCompany(normalized)
+          : await saveCompanyToSupabase(normalized);
+      if (!res.success) {
+        return { success: false, error: res.error || 'Não foi possível guardar a empresa.' };
       }
-    }).catch(err => {
-      console.warn('Erro ao salvar configurações da empresa no Supabase:', err);
-    });
+
+      setCompany(normalized);
+      setCompanies(prev => {
+        const exists = prev.some(c => (c.id || 'default_company') === compId);
+        const next = exists
+          ? prev.map(c => (c.id || 'default_company') === compId ? normalized : c)
+          : [normalized, ...prev];
+        try {
+          localStorage.setItem(STORAGE_KEY_COMPANIES, JSON.stringify(next));
+        } catch {}
+        return next;
+      });
+
+      try {
+        localStorage.setItem(STORAGE_KEY_COMPANY, JSON.stringify(normalized));
+      } catch {}
+
+      if (authMode === 'supabase') setIsSupabaseSynced(true);
+      setLastSyncTime(new Date().toLocaleTimeString('pt-AO'));
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err?.message || 'Erro ao guardar empresa.' };
+    }
   };
 
   const handleSelectActiveCompany = (companyId: string) => {
@@ -969,42 +1134,82 @@ export default function App() {
     }
   };
 
-  const handleDeleteCompany = (companyId: string) => {
+  const handleManageCompanyUsers = (companyId: string) => {
     if (!isSuperAdminRole(currentUser?.role)) return;
-    if (companyId === 'default_company') return;
-    setCompanies(prev => {
-      const next = prev.filter(c => (c.id || 'default_company') !== companyId);
-      if ((company.id || 'default_company') === companyId) {
-        const fallback = next.find(c => c.id === 'default_company') || next[0] || initialCompanySettings;
-        setCompany(fallback);
+    handleSelectActiveCompany(companyId);
+    setSellersCompanyFilter(companyId);
+    setActiveTab('sellers');
+  };
+
+  const handleDeleteCompany = async (companyId: string): Promise<{ success: boolean; error?: string }> => {
+    if (!isSuperAdminRole(currentUser?.role)) {
+      return { success: false, error: 'Apenas o Super Administrador pode remover empresas.' };
+    }
+    if (companyId === 'default_company') {
+      return { success: false, error: 'A empresa padrão não pode ser removida.' };
+    }
+
+    try {
+      const res =
+        authMode === 'localhost'
+          ? await deleteLocalCompany(companyId)
+          : await deleteCompanyFromSupabase(companyId);
+      if (!res.success) {
+        return { success: false, error: res.error || 'Não foi possível remover a empresa.' };
       }
-      return next;
-    });
-    deleteCompanyFromSupabase(companyId).catch(() => {});
+
+      setCompanies(prev => {
+        const next = prev.filter(c => (c.id || 'default_company') !== companyId);
+        if ((company.id || 'default_company') === companyId) {
+          const fallback = next.find(c => c.id === 'default_company') || next[0] || initialCompanySettings;
+          setCompany(fallback);
+        }
+        return next;
+      });
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err?.message || 'Erro ao remover empresa.' };
+    }
   };
 
   const handleRestoreDemoData = () => {
-    setDebts(demoDebts);
-    setClients(demoClients);
-    setSellers(demoSellers);
-    setCompany(initialCompanySettings);
-    localStorage.setItem(STORAGE_KEY_DEBTS, JSON.stringify(demoDebts));
-    localStorage.setItem(STORAGE_KEY_CLIENTS, JSON.stringify(demoClients));
-    localStorage.setItem(STORAGE_KEY_SELLERS, JSON.stringify(demoSellers));
-    localStorage.setItem(STORAGE_KEY_COMPANY, JSON.stringify(initialCompanySettings));
-    alert('Dados de demonstração restaurados com sucesso!');
+    const scopedSellers = demoSellers.map(s => ({ ...s, companyId: activeCompanyId }));
+    const scopedClients = demoClients.map(c => ({ ...c, companyId: activeCompanyId }));
+    const scopedDebts = demoDebts.map(d => ({ ...d, companyId: activeCompanyId }));
+    setDebts(scopedDebts);
+    setClients(scopedClients);
+    setSellers(scopedSellers);
+    localStorage.setItem(STORAGE_KEY_DEBTS, JSON.stringify(scopedDebts));
+    localStorage.setItem(STORAGE_KEY_CLIENTS, JSON.stringify(scopedClients));
+    localStorage.setItem(STORAGE_KEY_SELLERS, JSON.stringify(scopedSellers));
+    showAppNotice('success', 'Dados de demonstração restaurados com sucesso!');
   };
 
-  const handleImportAllData = (data: { debts: Debt[]; clients: Client[]; sellers: Seller[]; company: CompanySettings }) => {
+  const handleImportAllData = (data: {
+    debts: Debt[];
+    clients: Client[];
+    sellers: Seller[];
+    company: CompanySettings;
+    companies?: CompanySettings[];
+    utilizadores?: Utilizador[];
+  }) => {
     setDebts(data.debts);
     setClients(data.clients);
     setSellers(data.sellers);
     if (data.company) setCompany(data.company);
+    if (Array.isArray(data.companies) && data.companies.length > 0) {
+      setCompanies(data.companies);
+    }
+    if (Array.isArray(data.utilizadores) && data.utilizadores.length > 0) {
+      setUtilizadores(data.utilizadores);
+    }
   };
 
   // Navegação para dívidas com filtro
   const handleNavigateToDebts = (filter = 'all') => {
     setInitialDebtsFilter(filter);
+    setDebtsClientFilter('all');
+    setDebtsSellerFilter('all');
     setActiveTab('debts');
   };
 
@@ -1083,8 +1288,18 @@ export default function App() {
         onTabChange={tab => {
           setActiveTab(tab);
           setInitialDebtsFilter('all');
+          if (tab !== 'debts') {
+            setDebtsClientFilter('all');
+            setDebtsSellerFilter('all');
+          }
+          if (tab !== 'sellers') {
+            setSellersCompanyFilter('all');
+          }
         }}
-        onOpenNewDebt={() => setIsNewDebtOpen(true)}
+        onOpenNewDebt={() => {
+          setPreselectedClientIdForDebt(undefined);
+          setIsNewDebtOpen(true);
+        }}
         overdueCount={overdueCount}
         fiveDaysCount={fiveDaysCount}
         company={company}
@@ -1101,7 +1316,10 @@ export default function App() {
         <TopHeader
           activeTab={activeTab}
           onOpenMobileMenu={() => setIsMobileMenuOpen(true)}
-          onOpenNewDebt={() => setIsNewDebtOpen(true)}
+          onOpenNewDebt={() => {
+            setPreselectedClientIdForDebt(undefined);
+            setIsNewDebtOpen(true);
+          }}
           overdueCount={overdueCount}
           fiveDaysCount={fiveDaysCount}
           onOpen5DayReminders={() => setIsAutoReminderOpen(true)}
@@ -1112,10 +1330,27 @@ export default function App() {
           isSyncing={isManualSyncing}
           isSupabaseConnected={isSupabaseSynced}
           lastSyncTime={lastSyncTime}
+          authMode={authMode}
         />
 
         {/* Viewport Principal dos Módulos */}
         <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-24 lg:pb-12">
+          {appNotice && (
+            <div className={`mb-4 p-3 rounded-xl border text-xs flex items-center justify-between gap-3 ${
+              appNotice.type === 'success'
+                ? 'bg-emerald-50 border-emerald-200 text-emerald-900'
+                : 'bg-rose-50 border-rose-200 text-rose-900'
+            }`}>
+              <span className="font-semibold">{appNotice.message}</span>
+              <button
+                type="button"
+                onClick={() => setAppNotice(null)}
+                className="text-xs font-bold underline cursor-pointer"
+              >
+                Fechar
+              </button>
+            </div>
+          )}
           {activeTab === 'companies' && currentUser?.role === 'super_admin' && (
             <CompaniesManagementView
               companies={companies}
@@ -1123,6 +1358,8 @@ export default function App() {
               onSelectActiveCompany={handleSelectActiveCompany}
               onSaveCompany={handleSaveCompany}
               onDeleteCompany={handleDeleteCompany}
+              onManageCompanyUsers={handleManageCompanyUsers}
+              utilizadores={utilizadores}
               sellers={sellers}
               clients={clients}
               debts={debts}
@@ -1156,9 +1393,13 @@ export default function App() {
               company={company}
               onOpenNewClient={() => setIsNewClientOpen(true)}
               onOpenNewDebtForClient={(clientId) => {
+                setPreselectedClientIdForDebt(clientId);
                 setIsNewDebtOpen(true);
               }}
               onFilterDebtsByClient={(clientId) => {
+                setInitialDebtsFilter('all');
+                setDebtsSellerFilter('all');
+                setDebtsClientFilter(clientId);
                 setActiveTab('debts');
               }}
               onOpenWhatsAppDirect={handleOpenWhatsAppDirect}
@@ -1174,7 +1415,12 @@ export default function App() {
               company={company}
               currentUser={currentUser}
               initialFilter={initialDebtsFilter}
-              onOpenNewDebt={() => setIsNewDebtOpen(true)}
+              initialClientFilter={debtsClientFilter}
+              initialSellerFilter={debtsSellerFilter}
+              onOpenNewDebt={() => {
+                setPreselectedClientIdForDebt(undefined);
+                setIsNewDebtOpen(true);
+              }}
               onOpenPayment={d => setSelectedDebtForPayment(d)}
               onOpenWhatsApp={d => setSelectedDebtForWhatsApp(d)}
               onViewDebtDetail={d => setSelectedDebtForDetail(d)}
@@ -1255,7 +1501,12 @@ export default function App() {
               onDeleteSeller={handleDeleteSeller}
               companies={companies}
               currentCompanyId={activeCompanyId}
+              initialCompanyFilter={isSuperAdminRole(currentUser?.role) ? sellersCompanyFilter : 'all'}
+              onClearCompanyFilter={() => setSellersCompanyFilter('all')}
               onFilterDebtsBySeller={(sellerId) => {
+                setInitialDebtsFilter('all');
+                setDebtsClientFilter('all');
+                setDebtsSellerFilter(sellerId);
                 setActiveTab('debts');
               }}
             />
@@ -1264,12 +1515,24 @@ export default function App() {
           {activeTab === 'settings' && isAdminOrSuperRole(currentUser?.role) && (
             <CompanySettingsView
               company={company}
+              companies={companies}
               onSaveCompany={handleSaveCompany}
               debts={companyDebts}
               clients={companyClients}
               sellers={companySellers}
+              allDebts={isSuperAdminRole(currentUser?.role) ? debts : companyDebts}
+              allClients={isSuperAdminRole(currentUser?.role) ? clients : companyClients}
+              allSellers={isSuperAdminRole(currentUser?.role) ? sellers : companySellers}
               onRestoreDemoData={handleRestoreDemoData}
               onImportAllData={handleImportAllData}
+              authMode={authMode}
+              onMigrationSuccess={() => {
+                setIsSupabaseSynced(true);
+                showAppNotice(
+                  'success',
+                  'Dados migrados do Localhost para o Supabase com sucesso! Pode continuar no Localhost ou alternar para Supabase Cloud no login.'
+                );
+              }}
             />
           )}
 
@@ -1304,12 +1567,14 @@ export default function App() {
               <span aria-hidden="true">·</span>
               <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200 shadow-2xs">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                <span>Armazenamento Local Ativo</span>
+                <span>{authMode === 'localhost' ? 'Modo Localhost Ativo (Base JSON)' : 'Armazenamento Local Ativo'}</span>
               </span>
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200 shadow-2xs">
-                <span className={`w-1.5 h-1.5 rounded-full ${isSupabaseSynced ? 'bg-emerald-500' : 'bg-slate-400'}`}></span>
-                <span>Supabase Conectado {supabaseLatency !== null ? `(${supabaseLatency}ms)` : ''}</span>
-              </span>
+              {authMode === 'supabase' && (
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200 shadow-2xs">
+                  <span className={`w-1.5 h-1.5 rounded-full ${isSupabaseSynced ? 'bg-emerald-500' : 'bg-slate-400'}`}></span>
+                  <span>Supabase Conectado {supabaseLatency !== null ? `(${supabaseLatency}ms)` : ''}</span>
+                </span>
+              )}
             </div>
             <div className="flex items-center gap-3">
               {lastSyncTime && (
@@ -1386,13 +1651,17 @@ export default function App() {
       {isNewDebtOpen && (
         <NewDebtModal
           isOpen={isNewDebtOpen}
-          onClose={() => setIsNewDebtOpen(false)}
+          onClose={() => {
+            setIsNewDebtOpen(false);
+            setPreselectedClientIdForDebt(undefined);
+          }}
           onSave={handleCreateDebt}
           clients={visibleClients}
           sellers={companySellers}
           debts={companyDebts}
           company={company}
           currentUser={currentUser}
+          initialClientId={preselectedClientIdForDebt}
           onOpenNewClient={() => setIsNewClientOpen(true)}
         />
       )}

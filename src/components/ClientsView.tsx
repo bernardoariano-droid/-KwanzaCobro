@@ -57,9 +57,15 @@ export const ClientsView: React.FC<ClientsViewProps> = ({
   const scopedClients = useMemo(() => {
     if (isSeller && currentUser?.id) {
       return clients.filter(c => {
-        const isCreatedByHim = c.createdBySellerId === currentUser.id;
+        const isCreatedByHim =
+          c.createdBySellerId === currentUser.id ||
+          (currentUser.sellerId && c.createdBySellerId === currentUser.sellerId);
         const hasPurchasesWithHim = debts.some(
-          d => (d.sellerId === currentUser.id || d.sellerId === currentUser.name) && d.clientId === c.id
+          d =>
+            (d.sellerId === currentUser.id ||
+              (currentUser.sellerId && d.sellerId === currentUser.sellerId) ||
+              d.sellerId === currentUser.name) &&
+            d.clientId === c.id
         );
         return isCreatedByHim || hasPurchasesWithHim;
       });
@@ -82,7 +88,11 @@ export const ClientsView: React.FC<ClientsViewProps> = ({
       const clientDebts = debts.filter(d => {
         if (d.clientId !== client.id) return false;
         if (isSeller && currentUser?.id) {
-          return d.sellerId === currentUser.id || d.sellerId === currentUser.name;
+          return (
+            d.sellerId === currentUser.id ||
+            (currentUser.sellerId && d.sellerId === currentUser.sellerId) ||
+            d.sellerId === currentUser.name
+          );
         }
         return true;
       });

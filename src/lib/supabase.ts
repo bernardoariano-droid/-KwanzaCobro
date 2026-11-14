@@ -196,13 +196,22 @@ function translateSupabaseAuthError(message?: string): string {
   if (msg.includes('email not confirmed')) {
     return 'O seu e-mail ainda não foi confirmado. Verifique a sua caixa de entrada.';
   }
+  if (msg.includes('user already registered') || msg.includes('already exists')) {
+    return 'Este endereço de e-mail já está registado. Tente iniciar sessão ou recuperar a palavra-passe.';
+  }
+  if (msg.includes('password should be at least') || msg.includes('weak_password')) {
+    return 'A palavra-passe deve ter pelo menos 6 caracteres.';
+  }
+  if (msg.includes('signups not allowed')) {
+    return 'O registo público está temporariamente desativado no projeto Supabase.';
+  }
   if (msg.includes('too many requests') || msg.includes('rate limit')) {
     return 'Demasiadas tentativas seguidas. Aguarde alguns instantes e tente novamente.';
   }
   if (msg.includes('network') || msg.includes('failed to fetch')) {
     return 'Erro de ligação ao servidor Supabase Auth. Verifique a sua internet.';
   }
-  return message || 'Não foi possível iniciar sessão.';
+  return message || 'Não foi possível autenticar.';
 }
 
 export async function signInWithSupabaseAuth(
@@ -234,6 +243,107 @@ export async function signInWithSupabaseAuth(
   }
 
   return validateAuthenticatedUser(data.user);
+}
+
+export async function signUpWithSupabaseAuth(input: {
+  name: string;
+  email: string;
+  password: string;
+  phone?: string;
+  companyName: string;
+  nif?: string;
+  branch?: string;
+}): Promise<
+  | { ok: true; needsEmailConfirmation: false; user: AuthUser; company?: CompanySettings }
+  | { ok: true; needsEmailConfirmation: true; message: string }
+  | { ok: false; error: string }
+> {
+  if (!isSupabaseEnvConfigured()) {
+    return { ok: false, error: 'Configuração Supabase em falta (VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY).' };
+  }
+
+  const cleanEmail = input.email.trim().toLowerCase();
+  const cleanName = input.name.trim();
+  const cleanCompanyName = input.companyName.trim();
+  const cleanPhone = (input.phone || '').trim();
+  const cleanNif = (input.nif || '').trim();
+  const cleanBranch = (input.branch || 'Sede').trim();
+
+  if (!cleanName) return { ok: false, error: 'Informe o seu nome completo.' };
+  if (!cleanCompanyName) return { ok: false, error: 'Informe o nome da sua empresa.' };
+  if (!cleanEmail || !cleanEmail.includes('@')) {
+    return { ok: false, error: 'Introduza um endereço de e-mail válido.' };
+  }
+  if (!input.password || input.password.length < 6) {
+    return { ok: false, error: 'A palavra-passe deve ter pelo menos 6 caracteres.' };
+  }
+
+  const emailRedirectTo = typeof window !== 'undefined' ? window.location.origin : undefined;
+
+  const { data, error } = await supabase.auth.signUp({
+    email: cleanEmail,
+    password: input.password,
+    options: {
+      emailRedirectTo,
+      data: {
+        name: cleanName,
+        phone: cleanPhone,
+        company_name: cleanCompanyName,
+        nif: cleanNif,
+        branch: cleanBranch,
+        role: 'admin_geral',
+        self_register: true,
+      },
+    },
+  });
+
+  if (error) {
+    return { ok: false, error: translateSupabaseAuthError(error.message) };
+  }
+
+  if (!data?.session) {
+    return {
+      ok: true,
+      needsEmailConfirmation: true,
+      message:
+        'Conta criada! Enviámos um e-mail de confirmação para ' +
+        cleanEmail +
+        '. Confirme o endereço antes de iniciar sessão.',
+    };
+  }
+
+  // Sessão ativa imediata: garantir onboarding via /api/auth/register caso o trigger DB não tenha corrido
+  try {
+    await fetch('/api/auth/register', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${data.session.access_token}`,
+      },
+      body: JSON.stringify({
+        name: cleanName,
+        email: cleanEmail,
+        phone: cleanPhone,
+        companyName: cleanCompanyName,
+        nif: cleanNif,
+        branch: cleanBranch,
+      }),
+    });
+  } catch {
+    // Continua para validar perfil criado pelo trigger
+  }
+
+  const validation = await validateAuthenticatedUser(data.user!);
+  if (!validation.ok) {
+    return { ok: false, error: validation.error };
+  }
+
+  return {
+    ok: true,
+    needsEmailConfirmation: false,
+    user: validation.user,
+    company: validation.company,
+  };
 }
 
 export async function signOutSupabaseAuth(): Promise<void> {
@@ -636,25 +746,29 @@ export async function testSupabaseConnection(): Promise<SupabaseHealthResult> {
     console.warn('Backend status indisponível, testando diretamente o endpoint Supabase:', backendErr);
   }
 
-  // Fallback: Teste direto no frontend
+  // Fallback: Teste direto no frontend sem enviar sb_publishable_* como Bearer JWT
   try {
-    const response = await fetch(`${SUPABASE_URL}/rest/v1/`, {
+    const pingHeaders: Record<string, string> = {
+      apikey: SUPABASE_ANON_KEY,
+    };
+    if (SUPABASE_ANON_KEY.startsWith('eyJ')) {
+      pingHeaders.Authorization = `Bearer ${SUPABASE_ANON_KEY}`;
+    }
+
+    const response = await fetch(`${SUPABASE_URL}/auth/v1/settings`, {
       method: 'GET',
-      headers: {
-        'apikey': SUPABASE_ANON_KEY,
-        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-      },
+      headers: pingHeaders,
     });
 
     const elapsed = Math.round(performance.now() - start);
-    const isOk = response.status === 200 || response.status === 401 || response.status === 404 || response.status === 400;
+    const isOk = response.ok || response.status === 200 || response.status === 401;
 
     return {
       connected: isOk,
       url: SUPABASE_URL,
       projectId: SUPABASE_PROJECT_REF,
       latencyMs: elapsed,
-      message: isOk ? 'Conexão direta estabelecida com o Supabase' : `Status inesperado: ${response.status}`,
+      message: isOk ? 'Conexão direta estabelecida com o Supabase Auth' : `Status inesperado: ${response.status}`,
     };
   } catch (error: any) {
     return {
@@ -923,25 +1037,7 @@ export async function syncToSupabase(payload: {
 }
 
 /**
- * Retorna o comando SQL para adicionar a coluna de senha na tabela das empresas
- */
-export function getAddPasswordColumnSql(): string {
-  return `-- Comando SQL para adicionar coluna de senha à tabela das empresas no Supabase:
-ALTER TABLE public.company_settings 
-ADD COLUMN IF NOT EXISTS senha TEXT DEFAULT 'admin';
-
-ALTER TABLE public.company_settings 
-ADD COLUMN IF NOT EXISTS password TEXT DEFAULT 'admin';
-
--- Para atualizar a senha da sua empresa para um valor personalizado:
-UPDATE public.company_settings 
-SET senha = 'SuaNovaSenha123', password = 'SuaNovaSenha123'
-WHERE id = 'default_company';
-`;
-}
-
-/**
- * Retorna o esquema SQL completo para criar as tabelas no Supabase
+ * Retorna o esquema SQL completo para criar as tabelas e relacionamentos no Supabase
  */
 export async function fetchSupabaseSchemaSql(): Promise<string> {
   try {
@@ -970,13 +1066,11 @@ CREATE TABLE IF NOT EXISTS public.company_settings (
     penalty_per_day_rate NUMERIC DEFAULT 0.1,
     days_before_due_alert INTEGER DEFAULT 5,
     auto_alert_notifications BOOLEAN DEFAULT TRUE,
-    senha TEXT DEFAULT 'admin',
-    password TEXT DEFAULT 'admin',
+    status TEXT DEFAULT 'ativo',
+    super_admin_id TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
-);
-ALTER TABLE public.company_settings ADD COLUMN IF NOT EXISTS senha TEXT DEFAULT 'admin';
-ALTER TABLE public.company_settings ADD COLUMN IF NOT EXISTS password TEXT DEFAULT 'admin';
-`;
+);`;
 }
 
 /**
@@ -1127,9 +1221,12 @@ export async function saveCompanyToSupabase(company: CompanySettings): Promise<{
           },
           body: JSON.stringify({ company }),
         });
-        if (res.ok) {
-          const json = await res.json();
-          if (json.success) return { success: true };
+        const json = await res.json().catch(() => null);
+        if (res.ok && json?.success) {
+          return { success: true };
+        }
+        if ((res.status === 400 || res.status === 401 || res.status === 403) && json?.error) {
+          return { success: false, error: json.error };
         }
       } catch {
         // Fallback direto via Supabase RLS
@@ -1143,6 +1240,7 @@ export async function saveCompanyToSupabase(company: CompanySettings): Promise<{
         const cleanRow = { ...row };
         delete cleanRow.status;
         delete cleanRow.super_admin_id;
+        delete cleanRow.updated_at;
         const { error: retryError } = await supabase.from('company_settings').upsert(cleanRow, { onConflict: 'id' });
         if (retryError) return { success: false, error: retryError.message };
         return { success: true };
@@ -1164,9 +1262,12 @@ export async function deleteCompanyFromSupabase(companyId: string): Promise<{ su
           method: 'DELETE',
           headers: { Authorization: `Bearer ${token}` },
         });
-        if (res.ok) {
-          const json = await res.json();
-          if (json.success) return { success: true };
+        const json = await res.json().catch(() => null);
+        if (res.ok && json?.success) {
+          return { success: true };
+        }
+        if ((res.status === 400 || res.status === 401 || res.status === 403) && json?.error) {
+          return { success: false, error: json.error };
         }
       } catch {}
     }
@@ -1201,3 +1302,94 @@ export function subscribeToSupabaseChanges(onDataChange: () => void): () => void
     return () => {};
   }
 }
+
+export async function migrateLocalhostToSupabase(
+  payload: {
+    debts: Debt[];
+    clients: Client[];
+    sellers: Seller[];
+    company: CompanySettings;
+    companies?: CompanySettings[];
+  },
+  credentials?: { email: string; password: string }
+): Promise<{
+  success: boolean;
+  message: string;
+  counts: {
+    companies: number;
+    sellers: number;
+    clients: number;
+    debts: number;
+  };
+}> {
+  const health = await testSupabaseConnection();
+  if (!health.connected) {
+    return {
+      success: false,
+      message: 'Sem ligação ao servidor Supabase. Verifique a sua ligação à internet.',
+      counts: { companies: 0, sellers: 0, clients: 0, debts: 0 },
+    };
+  }
+  if (!health.tableExists) {
+    return {
+      success: false,
+      message: 'As tabelas ainda não existem no Supabase. Execute primeiro o script SQL (supabase-schema.sql) no SQL Editor do Supabase.',
+      counts: { companies: 0, sellers: 0, clients: 0, debts: 0 },
+    };
+  }
+
+  let token = await getSupabaseAccessToken();
+  if (!token) {
+    if (!credentials?.email || !credentials?.password) {
+      return {
+        success: false,
+        message: 'Inicie sessão com a sua conta Supabase Auth abaixo para autorizar a gravação dos dados no Supabase.',
+        counts: { companies: 0, sellers: 0, clients: 0, debts: 0 },
+      };
+    }
+    const authRes = await signInWithSupabaseAuth(credentials.email, credentials.password);
+    if (!authRes.ok) {
+      return {
+        success: false,
+        message: `Falha na autenticação Supabase: ${authRes.error}`,
+        counts: { companies: 0, sellers: 0, clients: 0, debts: 0 },
+      };
+    }
+    token = await getSupabaseAccessToken();
+  }
+
+  const companiesList =
+    Array.isArray(payload.companies) && payload.companies.length > 0
+      ? payload.companies
+      : payload.company
+      ? [payload.company]
+      : [];
+
+  const syncRes = await syncToSupabase({
+    debts: payload.debts || [],
+    clients: payload.clients || [],
+    sellers: payload.sellers || [],
+    company: payload.company,
+    companies: companiesList,
+  });
+
+  if (!syncRes.success) {
+    return {
+      success: false,
+      message: syncRes.message,
+      counts: { companies: 0, sellers: 0, clients: 0, debts: 0 },
+    };
+  }
+
+  return {
+    success: true,
+    message: `Migração concluída! ${companiesList.length} empresa(s), ${(payload.sellers || []).length} vendedor(es), ${(payload.clients || []).length} cliente(s) e ${(payload.debts || []).length} dívida(s) enviados para o Supabase.`,
+    counts: {
+      companies: companiesList.length,
+      sellers: (payload.sellers || []).length,
+      clients: (payload.clients || []).length,
+      debts: (payload.debts || []).length,
+    },
+  };
+}
+

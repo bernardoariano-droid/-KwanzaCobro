@@ -24,22 +24,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       });
     }
 
-    // 2. Procurar no Supabase na tabela debts
+    // 2. Procurar no Supabase na tabela debts (se acessível publicamente ou via service_role apenas com campos mínimos de recibo)
     const supabase = getBackendSupabase();
-    const { data: debt } = await supabase
+    const { data: debt, error: debtErr } = await supabase
       .from('debts')
-      .select('*, clients(*)')
+      .select('id, invoice_number, customer_name, customer_phone, total_amount, created_at, confirmation_mode, confirmation_code, confirmation_transaction_id')
       .eq('confirmation_transaction_id', transactionId)
       .maybeSingle();
 
-    if (debt) {
+    if (!debtErr && debt) {
       return res.status(200).json({
         verified: true,
         system: 'NEUROJUS Angola',
         transactionId: debt.confirmation_transaction_id,
         operationRef: debt.invoice_number,
-        clientName: debt.customer_name || debt.clients?.name || 'Cliente',
-        clientPhone: debt.customer_phone || debt.clients?.phone,
+        clientName: debt.customer_name || 'Cliente',
+        clientPhone: debt.customer_phone,
         totalAmount: debt.total_amount,
         confirmedAt: debt.created_at,
         confirmationMode: debt.confirmation_mode || 'pessoal',

@@ -179,8 +179,6 @@ export interface CompanySettings {
   penaltyPerDayRate?: number;
   daysBeforeDueAlert: number; // Configuração de dias de aviso prévio (Padrão: 5 dias)
   autoAlertNotifications: boolean;
-  senha?: string; // Senha da empresa / Administrador
-  password?: string; // Sinónimo para compatibilidade
   status?: 'ativo' | 'inativo';
   superAdminId?: string;
   createdAt?: string;
@@ -191,7 +189,6 @@ export interface SuperAdmin {
   name: string;
   email: string;
   phone?: string;
-  password?: string;
   isActive?: boolean;
   createdAt?: string;
 }

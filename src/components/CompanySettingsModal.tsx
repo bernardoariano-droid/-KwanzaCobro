@@ -25,7 +25,7 @@ import {
   ChevronDown,
   ChevronUp
 } from 'lucide-react';
-import { CompanySettings, Debt, Client, Seller } from '../types/debt';
+import { CompanySettings, Debt, Client, Seller, Utilizador } from '../types/debt';
 import { useLanguage } from '../i18n/LanguageContext';
 import { SupportedLanguage } from '../i18n/translations';
 import { 
@@ -36,32 +36,57 @@ import {
   syncToSupabase, 
   pullFromSupabase, 
   fetchSupabaseSchemaSql,
+  migrateLocalhostToSupabase,
   SupabaseHealthResult 
 } from '../lib/supabase';
 
 interface CompanySettingsModalProps {
   company: CompanySettings;
+  companies?: CompanySettings[];
   onSaveCompany: (updated: CompanySettings) => void;
   debts: Debt[];
   clients: Client[];
   sellers: Seller[];
+  allDebts?: Debt[];
+  allClients?: Client[];
+  allSellers?: Seller[];
   onRestoreDemoData: () => void;
-  onImportAllData: (data: { debts: Debt[]; clients: Client[]; sellers: Seller[]; company: CompanySettings }) => void;
+  onImportAllData: (data: {
+    debts: Debt[];
+    clients: Client[];
+    sellers: Seller[];
+    company: CompanySettings;
+    companies?: CompanySettings[];
+    utilizadores?: Utilizador[];
+  }) => void;
+  authMode?: 'localhost' | 'supabase';
+  onMigrationSuccess?: () => void;
 }
 
 export const CompanySettingsView: React.FC<CompanySettingsModalProps> = ({
   company,
+  companies = [],
   onSaveCompany,
   debts,
   clients,
   sellers,
+  allDebts,
+  allClients,
+  allSellers,
   onRestoreDemoData,
   onImportAllData,
+  authMode = 'supabase',
+  onMigrationSuccess,
 }) => {
   const { language, setLanguage, languages, t } = useLanguage();
   const [formData, setFormData] = useState<CompanySettings>(company);
   const [savedSuccess, setSavedSuccess] = useState(false);
   const [isCopiedRelationshipSql, setIsCopiedRelationshipSql] = useState(false);
+  const [copiedUrl, setCopiedUrl] = useState(false);
+  const [copiedKey, setCopiedKey] = useState(false);
+  const [confirmPullPending, setConfirmPullPending] = useState(false);
+  const [confirmDemoPending, setConfirmDemoPending] = useState(false);
+  const [backupFeedback, setBackupFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
   // Manter formData atualizado se a prop company mudar
   useEffect(() => {
@@ -73,6 +98,9 @@ export const CompanySettingsView: React.FC<CompanySettingsModalProps> = ({
   const [isTestingSupabase, setIsTestingSupabase] = useState(false);
   const [isSyncingSupabase, setIsSyncingSupabase] = useState(false);
   const [isPullingSupabase, setIsPullingSupabase] = useState(false);
+  const [isMigratingToSupabase, setIsMigratingToSupabase] = useState(false);
+  const [migrationEmail, setMigrationEmail] = useState('');
+  const [migrationPassword, setMigrationPassword] = useState('');
   const [supabaseFeedback, setSupabaseFeedback] = useState<{ type: 'success' | 'error' | 'info'; message: string } | null>(null);
   const [showApiKey, setShowApiKey] = useState(false);
   const [schemaSql, setSchemaSql] = useState<string>('');
@@ -94,152 +122,136 @@ export const CompanySettingsView: React.FC<CompanySettingsModalProps> = ({
 
 
   const RELATIONSHIPS_SQL = `-- ====================================================================
--- KwanzaCobro: Correção de Relacionamentos e Sincronização Automática
--- Tabelas: audit_trail, clients (clientes), company_settings, 
---          debt_items, debts, kwanzacobro_sync, payments, sellers
+-- NEUROJUS / KwanzaCobro: Relacionamentos & Isolamento Multiempresa
+-- Compatível com public.company_settings, utilizadores, sellers,
+-- clients, debts, debt_items, payments, audit_trail e kwanzacobro_sync (payload jsonb)
 -- ====================================================================
 
 -- 1. Compatibilidade de Nomenclatura: 'clientes' como VIEW de 'clients'
-CREATE OR REPLACE VIEW public.clientes AS 
+CREATE OR REPLACE VIEW public.clientes AS
 SELECT * FROM public.clients;
 
--- 2. Relacionamentos Foreign Key entre tabelas
-DO $$ 
+-- 2. Relacionamentos Foreign Key entre tabelas (sem destruir dados existentes)
+DO $$
 BEGIN
-    -- Relacionamento: clients -> sellers
     IF NOT EXISTS (
-        SELECT 1 FROM information_schema.table_constraints 
+        SELECT 1 FROM information_schema.table_constraints
         WHERE constraint_name = 'clients_created_by_seller_id_fkey'
     ) THEN
         ALTER TABLE public.clients
         ADD CONSTRAINT clients_created_by_seller_id_fkey
         FOREIGN KEY (created_by_seller_id) REFERENCES public.sellers(id)
-        ON DELETE SET NULL;
+        ON DELETE SET NULL NOT VALID;
     END IF;
 
-    -- Relacionamento: debts -> clients
     IF NOT EXISTS (
-        SELECT 1 FROM information_schema.table_constraints 
+        SELECT 1 FROM information_schema.table_constraints
         WHERE constraint_name = 'debts_client_id_fkey'
     ) THEN
         ALTER TABLE public.debts
         ADD CONSTRAINT debts_client_id_fkey
         FOREIGN KEY (client_id) REFERENCES public.clients(id)
-        ON DELETE CASCADE;
+        ON DELETE CASCADE NOT VALID;
     END IF;
 
-    -- Relacionamento: debts -> sellers
     IF NOT EXISTS (
-        SELECT 1 FROM information_schema.table_constraints 
+        SELECT 1 FROM information_schema.table_constraints
         WHERE constraint_name = 'debts_seller_id_fkey'
     ) THEN
         ALTER TABLE public.debts
         ADD CONSTRAINT debts_seller_id_fkey
         FOREIGN KEY (seller_id) REFERENCES public.sellers(id)
-        ON DELETE SET NULL;
+        ON DELETE SET NULL NOT VALID;
     END IF;
 
-    -- Relacionamento: debt_items -> debts
     IF NOT EXISTS (
-        SELECT 1 FROM information_schema.table_constraints 
+        SELECT 1 FROM information_schema.table_constraints
         WHERE constraint_name = 'debt_items_debt_id_fkey'
     ) THEN
         ALTER TABLE public.debt_items
         ADD CONSTRAINT debt_items_debt_id_fkey
         FOREIGN KEY (debt_id) REFERENCES public.debts(id)
-        ON DELETE CASCADE;
+        ON DELETE CASCADE NOT VALID;
     END IF;
 
-    -- Relacionamento: payments -> debts
     IF NOT EXISTS (
-        SELECT 1 FROM information_schema.table_constraints 
+        SELECT 1 FROM information_schema.table_constraints
         WHERE constraint_name = 'payments_debt_id_fkey'
     ) THEN
         ALTER TABLE public.payments
         ADD CONSTRAINT payments_debt_id_fkey
         FOREIGN KEY (debt_id) REFERENCES public.debts(id)
-        ON DELETE CASCADE;
+        ON DELETE CASCADE NOT VALID;
     END IF;
 
-    -- Relacionamento: audit_trail -> debts
     IF NOT EXISTS (
-        SELECT 1 FROM information_schema.table_constraints 
+        SELECT 1 FROM information_schema.table_constraints
         WHERE constraint_name = 'audit_trail_debt_id_fkey'
     ) THEN
         ALTER TABLE public.audit_trail
         ADD CONSTRAINT audit_trail_debt_id_fkey
         FOREIGN KEY (debt_id) REFERENCES public.debts(id)
-        ON DELETE CASCADE;
+        ON DELETE CASCADE NOT VALID;
     END IF;
 END $$;
 
--- 3. Salvaguarda: Criar cliente em 'clients' automaticamente se não existir
+-- 3. Salvaguarda: Criar cliente em 'clients' com company_id preservado se não existir
 CREATE OR REPLACE FUNCTION public.auto_ensure_client_on_debt()
 RETURNS TRIGGER AS $$
 BEGIN
     IF NEW.client_id IS NOT NULL AND NOT EXISTS (SELECT 1 FROM public.clients WHERE id = NEW.client_id) THEN
         INSERT INTO public.clients (
-            id, name, phone, province, municipality, client_type, credit_limit, created_by_seller_id, created_at
+            id, name, phone, province, municipality, client_type, credit_limit, created_by_seller_id, company_id, created_at
         ) VALUES (
-            NEW.client_id, COALESCE(NEW.customer_name, 'Cliente ' || NEW.client_id), COALESCE(NEW.customer_phone, '900000000'), 'Luanda', 'Luanda', 'particular', 500000, NEW.seller_id, COALESCE(NEW.created_at, NOW())
+            NEW.client_id,
+            COALESCE(NEW.customer_name, 'Cliente ' || NEW.client_id),
+            COALESCE(NEW.customer_phone, '900000000'),
+            'Luanda',
+            'Luanda',
+            'particular',
+            500000,
+            NEW.seller_id,
+            COALESCE(NEW.company_id, public.current_company_id(), 'default_company'),
+            COALESCE(NEW.created_at, NOW())
         ) ON CONFLICT (id) DO NOTHING;
     END IF;
     RETURN NEW;
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
 DROP TRIGGER IF EXISTS trigger_auto_ensure_client ON public.debts;
 CREATE TRIGGER trigger_auto_ensure_client
 BEFORE INSERT OR UPDATE OF client_id ON public.debts
 FOR EACH ROW EXECUTE FUNCTION public.auto_ensure_client_on_debt();
 
--- 4. Função e Triggers para RELACIONAR AUTOMATICAMENTE a tabela kwanzacobro_sync
+-- 4. Atualização automática de payload na tabela kwanzacobro_sync
 CREATE OR REPLACE FUNCTION public.sync_relational_to_kwanzacobro_sync()
 RETURNS TRIGGER AS $$
 DECLARE
-    v_debts JSONB;
-    v_clients JSONB;
-    v_sellers JSONB;
-    v_company JSONB;
+    v_payload JSONB;
 BEGIN
-    SELECT COALESCE(jsonb_agg(
-        jsonb_build_object(
-            'id', d.id, 'invoiceNumber', d.invoice_number, 'clientId', d.client_id, 'sellerId', d.seller_id,
-            'customerName', d.customer_name, 'customerPhone', d.customer_phone, 'issueDate', d.issue_date,
-            'dueDate', d.due_date, 'totalAmount', d.total_amount, 'status', d.status, 'paymentMethodAgreed', d.payment_method_agreed,
-            'terms', d.terms, 'confirmationStatus', d.confirmation_status, 'confirmationMode', d.confirmation_mode,
-            'confirmationCode', d.confirmation_code, 'confirmationTransactionId', d.confirmation_transaction_id,
-            'reminder5DaysSent', d.reminder_5_days_sent, 'reminder5DaysSentAt', d.reminder_5_days_sent_at,
-            'createdAt', d.created_at, 'updatedAt', d.updated_at,
-            'items', COALESCE((SELECT jsonb_agg(jsonb_build_object('id', di.id, 'description', di.description, 'quantity', di.quantity, 'unitPrice', di.unit_price, 'total', di.total)) FROM public.debt_items di WHERE di.debt_id = d.id), '[]'::jsonb),
-            'payments', COALESCE((SELECT jsonb_agg(jsonb_build_object('id', p.id, 'debtId', p.debt_id, 'amount', p.amount, 'date', p.date, 'paymentMethod', p.payment_method, 'receiptRef', p.receipt_ref, 'notes', p.notes, 'receivedBy', p.received_by, 'createdAt', p.created_at)) FROM public.payments p WHERE p.debt_id = d.id), '[]'::jsonb)
+    SELECT jsonb_build_object(
+        'updatedAt', NOW(),
+        'source', 'database_trigger',
+        'counts', jsonb_build_object(
+            'companies', (SELECT COUNT(*) FROM public.company_settings),
+            'clients', (SELECT COUNT(*) FROM public.clients),
+            'sellers', (SELECT COUNT(*) FROM public.sellers),
+            'debts', (SELECT COUNT(*) FROM public.debts),
+            'payments', (SELECT COUNT(*) FROM public.payments)
         )
-    ), '[]'::jsonb) INTO v_debts FROM public.debts d;
+    ) INTO v_payload;
 
-    SELECT COALESCE(jsonb_agg(
-        jsonb_build_object(
-            'id', c.id, 'name', c.name, 'nif', c.nif, 'phone', c.phone, 'email', c.email, 'province', c.province, 'municipality', c.municipality, 'address', c.address, 'clientType', c.client_type, 'creditLimit', c.credit_limit, 'notes', c.notes, 'createdBySellerId', c.created_by_seller_id, 'createdAt', c.created_at
-        )
-    ), '[]'::jsonb) INTO v_clients FROM public.clients c;
-
-    SELECT COALESCE(jsonb_agg(
-        jsonb_build_object(
-            'id', s.id, 'name', s.name, 'phone', s.phone, 'branch', s.branch, 'email', s.email, 'role', s.role, 'createdAt', s.created_at
-        )
-    ), '[]'::jsonb) INTO v_sellers FROM public.sellers s;
-
-    SELECT COALESCE(to_jsonb(cs.*), '{}'::jsonb) INTO v_company FROM public.company_settings cs LIMIT 1;
-
-    INSERT INTO public.kwanzacobro_sync (id, debts, clients, sellers, company, updated_at, updated_by)
-    VALUES ('main', v_debts, v_clients, v_sellers, v_company, NOW(), 'database_trigger')
+    INSERT INTO public.kwanzacobro_sync (id, payload, updated_at)
+    VALUES ('main', v_payload, NOW())
     ON CONFLICT (id) DO UPDATE SET
-        debts = EXCLUDED.debts, clients = EXCLUDED.clients, sellers = EXCLUDED.sellers, company = EXCLUDED.company, updated_at = NOW(), updated_by = 'database_trigger';
+        payload = EXCLUDED.payload,
+        updated_at = NOW();
 
     RETURN NULL;
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
--- 5. Triggers automáticos nas tabelas
 DROP TRIGGER IF EXISTS trigger_sync_debts_to_snapshot ON public.debts;
 CREATE TRIGGER trigger_sync_debts_to_snapshot AFTER INSERT OR UPDATE OR DELETE ON public.debts FOR EACH STATEMENT EXECUTE FUNCTION public.sync_relational_to_kwanzacobro_sync();
 
@@ -320,9 +332,15 @@ CREATE TRIGGER trigger_sync_company_to_snapshot AFTER INSERT OR UPDATE OR DELETE
   };
 
   const handlePullSupabase = async () => {
-    if (!window.confirm('Deseja importar os dados armazenados no Supabase? Os dados locais serão atualizados com a cópia da nuvem.')) {
+    if (!confirmPullPending) {
+      setConfirmPullPending(true);
+      setSupabaseFeedback({
+        type: 'info',
+        message: 'Clique novamente em "Confirmar Importação" para atualizar os dados locais com os registos autorizados da nuvem.',
+      });
       return;
     }
+    setConfirmPullPending(false);
     setIsPullingSupabase(true);
     setSupabaseFeedback(null);
     try {
@@ -351,6 +369,44 @@ CREATE TRIGGER trigger_sync_company_to_snapshot AFTER INSERT OR UPDATE OR DELETE
     navigator.clipboard.writeText(schemaSql);
     setIsCopiedSchema(true);
     setTimeout(() => setIsCopiedSchema(false), 2500);
+  };
+
+  const handleMigrateToSupabase = async () => {
+    setIsMigratingToSupabase(true);
+    setSupabaseFeedback(null);
+    try {
+      const res = await migrateLocalhostToSupabase(
+        {
+          debts: allDebts ?? debts,
+          clients: allClients ?? clients,
+          sellers: allSellers ?? sellers,
+          company: formData,
+          companies: companies.length > 0 ? companies : [formData],
+        },
+        migrationEmail && migrationPassword
+          ? { email: migrationEmail, password: migrationPassword }
+          : undefined
+      );
+
+      if (res.success) {
+        setSupabaseFeedback({ type: 'success', message: res.message });
+        if (onMigrationSuccess) {
+          onMigrationSuccess();
+        }
+      } else {
+        setSupabaseFeedback({
+          type: res.message.includes('SQL') ? 'info' : 'error',
+          message: res.message,
+        });
+        if (res.message.includes('SQL')) {
+          setIsSchemaExpanded(true);
+        }
+      }
+    } catch (e: any) {
+      setSupabaseFeedback({ type: 'error', message: e?.message || 'Erro ao migrar dados para o Supabase.' });
+    } finally {
+      setIsMigratingToSupabase(false);
+    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -396,12 +452,12 @@ CREATE TRIGGER trigger_sync_company_to_snapshot AFTER INSERT OR UPDATE OR DELETE
             sellers: parsed.sellers,
             company: parsed.company || company,
           });
-          alert('Cópia de segurança importada com sucesso!');
+          setBackupFeedback({ type: 'success', message: 'Cópia de segurança importada com sucesso!' });
         } else {
-          alert('O ficheiro JSON não possui a estrutura correta do NEUROJUS.');
+          setBackupFeedback({ type: 'error', message: 'O ficheiro JSON não possui a estrutura correta do NEUROJUS.' });
         }
-      } catch (err) {
-        alert('Erro ao ler ficheiro de backup.');
+      } catch {
+        setBackupFeedback({ type: 'error', message: 'Erro ao ler ficheiro de backup.' });
       }
     };
     reader.readAsText(file);
@@ -790,12 +846,13 @@ CREATE TRIGGER trigger_sync_company_to_snapshot AFTER INSERT OR UPDATE OR DELETE
                 type="button"
                 onClick={() => {
                   navigator.clipboard.writeText(SUPABASE_URL);
-                  alert('URL copiado!');
+                  setCopiedUrl(true);
+                  setTimeout(() => setCopiedUrl(false), 2000);
                 }}
-                className="text-slate-400 hover:text-slate-700 p-1 rounded"
+                className="text-slate-400 hover:text-emerald-700 p-1 rounded flex items-center gap-1 cursor-pointer"
                 title="Copiar URL"
               >
-                <Copy className="w-3.5 h-3.5" />
+                {copiedUrl ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
               </button>
             </div>
             <span className="text-[10px] text-slate-400 block font-mono">
@@ -835,12 +892,13 @@ CREATE TRIGGER trigger_sync_company_to_snapshot AFTER INSERT OR UPDATE OR DELETE
                 type="button"
                 onClick={() => {
                   navigator.clipboard.writeText(SUPABASE_ANON_KEY);
-                  alert('Chave de API copiada!');
+                  setCopiedKey(true);
+                  setTimeout(() => setCopiedKey(false), 2000);
                 }}
-                className="text-slate-400 hover:text-slate-700 p-1 rounded"
+                className="text-slate-400 hover:text-emerald-700 p-1 rounded flex items-center gap-1 cursor-pointer"
                 title="Copiar Chave"
               >
-                <Copy className="w-3.5 h-3.5" />
+                {copiedKey ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
               </button>
             </div>
             <span className="text-[10px] text-emerald-700 block font-medium">
@@ -878,7 +936,13 @@ CREATE TRIGGER trigger_sync_company_to_snapshot AFTER INSERT OR UPDATE OR DELETE
             className="px-4 py-2 text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-lg transition-colors flex items-center gap-2 cursor-pointer disabled:opacity-60"
           >
             <Download className={`w-3.5 h-3.5 ${isPullingSupabase ? 'animate-spin' : ''}`} />
-            <span>{isPullingSupabase ? 'Importando...' : 'Importar da Nuvem Supabase'}</span>
+            <span>
+              {isPullingSupabase
+                ? 'Importando...'
+                : confirmPullPending
+                ? 'Confirmar Importação da Nuvem'
+                : 'Importar da Nuvem Supabase'}
+            </span>
           </button>
 
           <a
@@ -891,6 +955,55 @@ CREATE TRIGGER trigger_sync_company_to_snapshot AFTER INSERT OR UPDATE OR DELETE
             <ExternalLink className="w-3.5 h-3.5 text-slate-400" />
           </a>
         </div>
+
+        {/* Painel de Migração Assistida Localhost -> Supabase */}
+        {authMode === 'localhost' && (
+          <div className="p-4 bg-slate-900 text-white rounded-xl space-y-3 border border-slate-800">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div>
+                <h4 className="text-xs font-bold text-emerald-300 uppercase tracking-wider">
+                  Migração Localhost → Supabase (Quando estiver pronto)
+                </h4>
+                <p className="text-[11px] text-slate-300 mt-0.5">
+                  Os seus dados atuais estão guardados com segurança no Localhost ({companies.length || 1} empresa(s), {(allSellers ?? sellers).length} vendedor(es), {(allClients ?? clients).length} cliente(s), {(allDebts ?? debts).length} dívida(s)). Quando executar o SQL no Supabase, autentique-se abaixo para migrar tudo.
+                </p>
+              </div>
+              <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold whitespace-nowrap self-start ${
+                supabaseStatus?.tableExists
+                  ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+                  : 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
+              }`}>
+                {supabaseStatus?.tableExists ? 'Tabelas Supabase Prontas' : 'Tabelas ainda não criadas'}
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+              <input
+                type="email"
+                placeholder="E-mail da conta Supabase Auth"
+                value={migrationEmail}
+                onChange={e => setMigrationEmail(e.target.value)}
+                className="px-3 py-2 text-xs text-slate-900 bg-white rounded-lg outline-none focus:ring-2 focus:ring-emerald-400"
+              />
+              <input
+                type="password"
+                placeholder="Palavra-passe Supabase Auth"
+                value={migrationPassword}
+                onChange={e => setMigrationPassword(e.target.value)}
+                className="px-3 py-2 text-xs text-slate-900 bg-white rounded-lg outline-none focus:ring-2 focus:ring-emerald-400"
+              />
+              <button
+                type="button"
+                onClick={handleMigrateToSupabase}
+                disabled={isMigratingToSupabase}
+                className="px-4 py-2 text-xs font-bold text-slate-950 bg-emerald-400 hover:bg-emerald-300 rounded-lg transition-colors cursor-pointer disabled:opacity-60 flex items-center justify-center gap-1.5"
+              >
+                <Cloud className="w-3.5 h-3.5" />
+                <span>{isMigratingToSupabase ? 'A migrar...' : 'Migrar para Supabase'}</span>
+              </button>
+            </div>
+          </div>
+        )}
 
 
 
@@ -1021,6 +1134,17 @@ CREATE TRIGGER trigger_sync_company_to_snapshot AFTER INSERT OR UPDATE OR DELETE
           <span>Cópias de Segurança & Gestão de Dados</span>
         </div>
 
+        {backupFeedback && (
+          <div className={`p-3 rounded-xl border text-xs flex items-center gap-2 ${
+            backupFeedback.type === 'success'
+              ? 'bg-emerald-50 border-emerald-200 text-emerald-900'
+              : 'bg-rose-50 border-rose-200 text-rose-900'
+          }`}>
+            <AlertCircle className="w-4 h-4 shrink-0" />
+            <span>{backupFeedback.message}</span>
+          </div>
+        )}
+
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {/* Exportar JSON */}
           <div className="p-4 border border-slate-200 rounded-lg space-y-2">
@@ -1062,18 +1186,37 @@ CREATE TRIGGER trigger_sync_company_to_snapshot AFTER INSERT OR UPDATE OR DELETE
             <p className="text-[11px] text-amber-800">
               Repor conjunto de clientes, vendedores e dívidas de exemplo do mercado angolano.
             </p>
-            <button
-              type="button"
-              onClick={() => {
-                if (window.confirm('Tem a certeza de que deseja recarregar os dados de demonstração de Angola?')) {
-                  onRestoreDemoData();
-                }
-              }}
-              className="w-full py-1.5 px-3 text-xs font-semibold text-amber-900 bg-amber-200/80 hover:bg-amber-300 rounded-md transition-colors flex items-center justify-center gap-1.5"
-            >
-              <RotateCcw className="w-3.5 h-3.5" />
-              <span>Repor Demonstração</span>
-            </button>
+            {confirmDemoPending ? (
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setConfirmDemoPending(false);
+                    onRestoreDemoData();
+                    setBackupFeedback({ type: 'success', message: 'Dados demonstrativos carregados.' });
+                  }}
+                  className="flex-1 py-1.5 px-2 text-xs font-bold text-white bg-amber-600 hover:bg-amber-700 rounded-md transition-colors cursor-pointer"
+                >
+                  Confirmar
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setConfirmDemoPending(false)}
+                  className="py-1.5 px-2 text-xs font-semibold text-slate-700 bg-white border border-slate-300 hover:bg-slate-50 rounded-md transition-colors cursor-pointer"
+                >
+                  Cancelar
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setConfirmDemoPending(true)}
+                className="w-full py-1.5 px-3 text-xs font-semibold text-amber-900 bg-amber-200/80 hover:bg-amber-300 rounded-md transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span>Repor Demonstração</span>
+              </button>
+            )}
           </div>
         </div>
       </div>

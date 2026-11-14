@@ -22,6 +22,8 @@ coverage/
 
 # Local database & temp files
 data/*.tmp.*
+data/neurojus_db.json
+data/.local_auth_secret
 *.sqlite
 *.db
 

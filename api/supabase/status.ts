@@ -6,29 +6,41 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     const supabase = getAnonSupabase();
 
-    // 1. Ping endpoint
-    const pingRes = await fetch(`${SUPABASE_URL}/rest/v1/`, {
+    // 1. Ping endpoint Auth & REST sem enviar sb_publishable_* como Bearer JWT
+    const pingHeaders: Record<string, string> = {
+      apikey: SUPABASE_ANON_KEY,
+    };
+    if (SUPABASE_ANON_KEY.startsWith('eyJ')) {
+      pingHeaders.Authorization = `Bearer ${SUPABASE_ANON_KEY}`;
+    }
+
+    const pingRes = await fetch(`${SUPABASE_URL}/auth/v1/settings`, {
       method: 'GET',
-      headers: {
-        apikey: SUPABASE_ANON_KEY,
-        Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
-      },
+      headers: pingHeaders,
     });
     const latencyMs = Date.now() - start;
-    const isOnline = pingRes.status === 200 || pingRes.status === 401 || pingRes.status === 404 || pingRes.status === 400;
+    const isOnline = pingRes.ok || pingRes.status === 200 || pingRes.status === 401;
 
-    // 2. Query table counts
+    // 2. Query table counts (distinguish schema missing vs empty tables)
     let tableExists = false;
     let counts = { companies: 0, sellers: 0, clients: 0, debts: 0 };
     try {
       const [compRes, selRes, cliRes, debtRes] = await Promise.all([
-        supabase.from('company_settings').select('id', { count: 'exact', head: true }),
-        supabase.from('sellers').select('id', { count: 'exact', head: true }),
-        supabase.from('clients').select('id', { count: 'exact', head: true }),
-        supabase.from('debts').select('id', { count: 'exact', head: true }),
+        supabase.from('company_settings').select('id', { count: 'exact' }).limit(1),
+        supabase.from('sellers').select('id', { count: 'exact' }).limit(1),
+        supabase.from('clients').select('id', { count: 'exact' }).limit(1),
+        supabase.from('debts').select('id', { count: 'exact' }).limit(1),
       ]);
 
-      tableExists = !compRes.error || !selRes.error || !cliRes.error || !debtRes.error;
+      const isMissingTableErr = (err: any) =>
+        Boolean(err?.code === 'PGRST205' || (err?.message && (err.message.includes('schema cache') || err.message.includes('does not exist'))));
+
+      tableExists =
+        (!compRes.error && !isMissingTableErr(compRes.error)) ||
+        (!selRes.error && !isMissingTableErr(selRes.error)) ||
+        (!cliRes.error && !isMissingTableErr(cliRes.error)) ||
+        (!debtRes.error && !isMissingTableErr(debtRes.error));
+
       counts = {
         companies: compRes.count ?? 0,
         sellers: selRes.count ?? 0,
@@ -48,8 +60,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       tableExists,
       counts,
       status: isOnline ? 'online' : 'offline',
-      message: isOnline 
-        ? (tableExists ? `Conectado ao Supabase (${counts.sellers} vendedores, ${counts.clients} clientes, ${counts.debts} dívidas)` : 'Cluster Supabase Conectado.')
+      message: isOnline
+        ? tableExists
+          ? `Conectado ao Supabase (${counts.companies} empresas, ${counts.sellers} vendedores, ${counts.clients} clientes, ${counts.debts} dívidas)`
+          : 'Supabase Auth conectado. Execute supabase-schema.sql no SQL Editor para criar as tabelas.'
         : 'Cluster Supabase offline ou inatingível',
     });
   } catch (err: any) {

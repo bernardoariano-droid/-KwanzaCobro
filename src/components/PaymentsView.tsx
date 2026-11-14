@@ -42,7 +42,12 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
   // Filtragem de dívidas do vendedor ou todas para administrador
   const effectiveDebts = useMemo(() => {
     if (isSeller && currentUser) {
-      return debts.filter(d => d.sellerId === currentUser.id || d.sellerId === currentUser.name);
+      return debts.filter(
+        d =>
+          d.sellerId === currentUser.id ||
+          (currentUser.sellerId && d.sellerId === currentUser.sellerId) ||
+          d.sellerId === currentUser.name
+      );
     }
     return debts;
   }, [debts, isSeller, currentUser]);
@@ -99,8 +104,15 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
 
       if (q && !matchText) return false;
 
-      if (methodFilter !== 'all' && item.payment.paymentMethod !== methodFilter) {
-        return false;
+      if (methodFilter !== 'all') {
+        const methodStr = String(item.payment.paymentMethod);
+        if (methodFilter === 'transferencia_bancaria') {
+          if (methodStr !== 'transferencia_bancaria' && methodStr !== 'transferencia') {
+            return false;
+          }
+        } else if (methodStr !== methodFilter) {
+          return false;
+        }
       }
 
       return true;
@@ -208,7 +220,7 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
           >
             <option value="all">{t('common.all', 'Todos os Métodos')}</option>
             <option value="multicaixa_express">{t('payments.method_mcx', 'Multicaixa Express')}</option>
-            <option value="transferencia">{t('payments.method_transfer', 'Transferência Bancária')}</option>
+            <option value="transferencia_bancaria">{t('payments.method_transfer', 'Transferência Bancária')}</option>
             <option value="tpa">{t('payments.method_tpa', 'TPA / Multicaixa')}</option>
             <option value="dinheiro">{t('payments.method_cash', 'Dinheiro Vivo')}</option>
             <option value="deposito">{t('payments.method_deposit', 'Depósito Bancário')}</option>

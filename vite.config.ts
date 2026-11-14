@@ -20,7 +20,7 @@ export default defineConfig(() => {
           name: 'KwanzaCobro - Gestão e Controlo de Dívidas Empresariais',
           short_name: 'KwanzaCobro',
           description: 'Sistema oficial KwanzaCobro para registo de compras a crédito, controlo de dívidas, avisos WhatsApp/SMS e recibos digitais.',
-          theme_color: '#1d4ed8',
+          theme_color: '#047857',
           background_color: '#f8fafc',
           display: 'standalone',
           orientation: 'any',

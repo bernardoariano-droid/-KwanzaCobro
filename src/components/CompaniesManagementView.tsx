@@ -17,18 +17,33 @@ import {
   ToggleRight,
   Trash2,
   ShieldCheck,
-  KeyRound
+  KeyRound,
+  AlertCircle
 } from 'lucide-react';
-import { CompanySettings, Seller, Client, Debt } from '../types/debt';
+import { CompanySettings, Seller, Client, Debt, Utilizador } from '../types/debt';
 import { formatKwanza } from '../utils/formatters';
 import { TempSuperAdminPasswordModal } from './TempSuperAdminPasswordModal';
+import { fetchSupabaseSchemaSql } from '../lib/supabase';
+
+function generateCompanyUuid(): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === 'x' ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+}
 
 interface CompaniesManagementViewProps {
   companies: CompanySettings[];
   activeCompanyId: string;
   onSelectActiveCompany: (companyId: string) => void;
-  onSaveCompany: (company: CompanySettings) => Promise<void> | void;
-  onDeleteCompany?: (companyId: string) => Promise<void> | void;
+  onSaveCompany: (company: CompanySettings) => Promise<{ success: boolean; error?: string } | void> | void;
+  onDeleteCompany?: (companyId: string) => Promise<{ success: boolean; error?: string } | void> | void;
+  onManageCompanyUsers?: (companyId: string) => void;
+  utilizadores?: Utilizador[];
   sellers: Seller[];
   clients: Client[];
   debts: Debt[];
@@ -40,6 +55,8 @@ export const CompaniesManagementView: React.FC<CompaniesManagementViewProps> = (
   onSelectActiveCompany,
   onSaveCompany,
   onDeleteCompany,
+  onManageCompanyUsers,
+  utilizadores = [],
   sellers,
   clients,
   debts,
@@ -49,8 +66,11 @@ export const CompaniesManagementView: React.FC<CompaniesManagementViewProps> = (
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCompany, setEditingCompany] = useState<CompanySettings | null>(null);
   const [showSqlModal, setShowSqlModal] = useState(false);
+  const [sqlPreviewText, setSqlPreviewText] = useState<string>('');
   const [isCopiedSql, setIsCopiedSql] = useState(false);
   const [isTempPasswordModalOpen, setIsTempPasswordModalOpen] = useState(false);
+  const [feedbackError, setFeedbackError] = useState<string | null>(null);
+  const [feedbackSuccess, setFeedbackSuccess] = useState<string | null>(null);
 
   // Formulário de Cadastro / Edição
   const [formId, setFormId] = useState('');
@@ -69,7 +89,7 @@ export const CompaniesManagementView: React.FC<CompaniesManagementViewProps> = (
   const [isSaving, setIsSaving] = useState(false);
 
   const openNewCompanyModal = () => {
-    const newId = `comp-${Date.now()}`;
+    const newId = generateCompanyUuid();
     setFormId(newId);
     setFormName('');
     setFormNif('');
@@ -84,11 +104,12 @@ export const CompaniesManagementView: React.FC<CompaniesManagementViewProps> = (
     setFormDueDays(5);
     setFormStatus('ativo');
     setEditingCompany(null);
+    setFeedbackError(null);
     setIsModalOpen(true);
   };
 
   const openEditCompanyModal = (comp: CompanySettings) => {
-    setFormId(comp.id || 'default_company');
+    setFormId(comp.id || generateCompanyUuid());
     setFormName(comp.name);
     setFormNif(comp.nif);
     setFormPhone(comp.phone);
@@ -102,6 +123,7 @@ export const CompaniesManagementView: React.FC<CompaniesManagementViewProps> = (
     setFormDueDays(comp.daysBeforeDueAlert || 5);
     setFormStatus(comp.status || 'ativo');
     setEditingCompany(comp);
+    setFeedbackError(null);
     setIsModalOpen(true);
   };
 
@@ -110,6 +132,7 @@ export const CompaniesManagementView: React.FC<CompaniesManagementViewProps> = (
     if (!formName.trim()) return;
 
     setIsSaving(true);
+    setFeedbackError(null);
     const payload: CompanySettings = {
       id: formId,
       name: formName.trim(),
@@ -130,20 +153,36 @@ export const CompaniesManagementView: React.FC<CompaniesManagementViewProps> = (
     };
 
     try {
-      await onSaveCompany(payload);
+      const result = await onSaveCompany(payload);
+      if (result && result.success === false) {
+        setFeedbackError(result.error || 'Não foi possível guardar a empresa no Supabase.');
+        return;
+      }
+      setFeedbackSuccess(
+        editingCompany
+          ? `Empresa "${payload.name}" atualizada com sucesso.`
+          : `Empresa "${payload.name}" cadastrada e pronta para receber utilizadores.`
+      );
+      setTimeout(() => setFeedbackSuccess(null), 5000);
       setIsModalOpen(false);
+    } catch (err: any) {
+      setFeedbackError(err?.message || 'Erro ao guardar empresa.');
     } finally {
       setIsSaving(false);
     }
   };
 
   const toggleCompanyStatus = async (comp: CompanySettings) => {
+    setFeedbackError(null);
     const newStatus = comp.status === 'inativo' ? 'ativo' : 'inativo';
     const updated: CompanySettings = {
       ...comp,
       status: newStatus,
     };
-    await onSaveCompany(updated);
+    const result = await onSaveCompany(updated);
+    if (result && result.success === false) {
+      setFeedbackError(result.error || 'Não foi possível alterar o estado da empresa.');
+    }
   };
 
   // Filtragem das empresas
@@ -158,116 +197,151 @@ export const CompaniesManagementView: React.FC<CompaniesManagementViewProps> = (
     return matchesSearch && (c.status || 'ativo') === statusFilter;
   });
 
+  // Contagem real deduplicada de utilizadores (public.utilizadores + sellers)
+  const getCompanyUsersCount = (compId: string) => {
+    const ids = new Set<string>();
+    (utilizadores || []).forEach(u => {
+      if ((u.companyId || 'default_company') === compId) ids.add(u.id);
+    });
+    (sellers || []).forEach(s => {
+      if ((s.companyId || 'default_company') === compId) ids.add(s.id);
+    });
+    return ids.size;
+  };
+
   // Métricas Consolidadas
   const totalCompaniesCount = companies.length;
   const activeCompaniesCount = companies.filter(c => (c.status || 'ativo') === 'ativo').length;
-  const totalUsersCount = sellers.length + companies.length; // Admins + Sellers
+  const totalUsersCount = React.useMemo(() => {
+    const ids = new Set<string>();
+    (utilizadores || []).forEach(u => ids.add(u.id));
+    (sellers || []).forEach(s => ids.add(s.id));
+    return ids.size;
+  }, [utilizadores, sellers]);
   const totalDebtsVolume = debts.reduce((sum, d) => sum + (d.totalAmount || 0), 0);
 
-  // Script SQL Incremental Seguro para Multi-Empresa, Supabase Auth e RLS
-  // Preserva integralmente o Super Admin existente (bamidia@gmail.com / 8b9f3c41-c996-4764-87c2-9d82411584e1)
-  // e as funções SQL existentes: is_super_admin(), current_company_id(), is_company_admin()
+  // Script SQL Completo (Criação + Relacionamentos FK + RLS Multiempresa)
   const MULTI_TENANT_SQL = `-- ====================================================================
--- NEUROJUS / KwanzaCobro: Autenticação Supabase Auth + RLS Multiempresa
+-- NEUROJUS / KwanzaCobro: Tabelas, Relacionamentos (FK) e RLS Multiempresa
 -- Seguro e não-destrutivo: NÃO apaga dados, NÃO altera bamidia@gmail.com
 -- e preserva is_super_admin(), current_company_id(), is_company_admin().
 -- ====================================================================
 
--- 1. Garantir colunas auxiliares em public.utilizadores sem alterar dados existentes
-ALTER TABLE public.utilizadores ADD COLUMN IF NOT EXISTS branch TEXT DEFAULT 'Sede';
-ALTER TABLE public.utilizadores ADD COLUMN IF NOT EXISTS seller_id TEXT;
-ALTER TABLE public.utilizadores ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW();
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
--- 2. Garantir company_id nas tabelas operacionais + índices
-ALTER TABLE public.sellers ADD COLUMN IF NOT EXISTS company_id TEXT DEFAULT 'default_company';
-ALTER TABLE public.clients ADD COLUMN IF NOT EXISTS company_id TEXT DEFAULT 'default_company';
-ALTER TABLE public.debts ADD COLUMN IF NOT EXISTS company_id TEXT DEFAULT 'default_company';
-ALTER TABLE public.audit_trail ADD COLUMN IF NOT EXISTS company_id TEXT DEFAULT 'default_company';
+-- 1. Criar tabelas caso não existam (sem alterar estrutura existente)
+CREATE TABLE IF NOT EXISTS public.company_settings (
+    id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+    name TEXT NOT NULL DEFAULT 'KwanzaCobro - Gestão de Dívidas Empresariais',
+    nif TEXT DEFAULT '',
+    phone TEXT DEFAULT '+244 ',
+    email TEXT DEFAULT '',
+    address TEXT DEFAULT '',
+    city TEXT DEFAULT 'Luanda, Angola',
+    bank_name TEXT DEFAULT 'Banco BAI',
+    iban TEXT DEFAULT '',
+    express_phone TEXT DEFAULT '',
+    currency TEXT DEFAULT 'Kz',
+    logo_url TEXT,
+    penalty_per_day_rate NUMERIC DEFAULT 0.1,
+    days_before_due_alert INTEGER DEFAULT 5,
+    auto_alert_notifications BOOLEAN DEFAULT TRUE,
+    status TEXT DEFAULT 'ativo',
+    super_admin_id TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
 
+CREATE TABLE IF NOT EXISTS public.utilizadores (
+    id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+    nome TEXT NOT NULL DEFAULT 'Utilizador',
+    email TEXT NOT NULL UNIQUE,
+    telefone TEXT DEFAULT '',
+    role TEXT NOT NULL DEFAULT 'vendedor' CHECK (role IN ('super_admin', 'admin_geral', 'vendedor')),
+    company_id TEXT,
+    ativo BOOLEAN NOT NULL DEFAULT TRUE,
+    branch TEXT DEFAULT 'Sede',
+    seller_id TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 2. Relacionamentos adaptativos (compatível com company_settings.id uuid ou text)
+DO $$
+DECLARE
+    v_comp_id_type TEXT;
+    v_col_type TEXT;
+BEGIN
+    ALTER TABLE public.company_settings ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'ativo';
+    ALTER TABLE public.company_settings ADD COLUMN IF NOT EXISTS super_admin_id TEXT;
+    ALTER TABLE public.company_settings ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW();
+    ALTER TABLE public.utilizadores ADD COLUMN IF NOT EXISTS branch TEXT DEFAULT 'Sede';
+    ALTER TABLE public.utilizadores ADD COLUMN IF NOT EXISTS seller_id TEXT;
+    ALTER TABLE public.utilizadores ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW();
+
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_indexes WHERE schemaname = 'public' AND tablename = 'company_settings' AND indexdef ILIKE '%(id)%'
+    ) THEN
+        CREATE UNIQUE INDEX idx_company_settings_id_unique ON public.company_settings(id);
+    END IF;
+
+    SELECT data_type INTO v_comp_id_type FROM information_schema.columns
+    WHERE table_schema = 'public' AND table_name = 'company_settings' AND column_name = 'id';
+
+    IF v_comp_id_type = 'uuid' THEN
+        ALTER TABLE public.utilizadores ADD COLUMN IF NOT EXISTS company_id UUID;
+        ALTER TABLE public.sellers ADD COLUMN IF NOT EXISTS company_id UUID;
+        ALTER TABLE public.clients ADD COLUMN IF NOT EXISTS company_id UUID;
+        ALTER TABLE public.debts ADD COLUMN IF NOT EXISTS company_id UUID;
+        ALTER TABLE public.audit_trail ADD COLUMN IF NOT EXISTS company_id UUID;
+    ELSE
+        ALTER TABLE public.utilizadores ADD COLUMN IF NOT EXISTS company_id TEXT;
+        ALTER TABLE public.sellers ADD COLUMN IF NOT EXISTS company_id TEXT DEFAULT 'default_company';
+        ALTER TABLE public.clients ADD COLUMN IF NOT EXISTS company_id TEXT DEFAULT 'default_company';
+        ALTER TABLE public.debts ADD COLUMN IF NOT EXISTS company_id TEXT DEFAULT 'default_company';
+        ALTER TABLE public.audit_trail ADD COLUMN IF NOT EXISTS company_id TEXT DEFAULT 'default_company';
+    END IF;
+
+    SELECT data_type INTO v_col_type FROM information_schema.columns WHERE table_schema='public' AND table_name='utilizadores' AND column_name='company_id';
+    IF v_col_type = v_comp_id_type AND NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_utilizadores_company') THEN
+        ALTER TABLE public.utilizadores ADD CONSTRAINT fk_utilizadores_company FOREIGN KEY (company_id) REFERENCES public.company_settings(id) ON UPDATE CASCADE ON DELETE SET NULL NOT VALID;
+    END IF;
+
+    SELECT data_type INTO v_col_type FROM information_schema.columns WHERE table_schema='public' AND table_name='sellers' AND column_name='company_id';
+    IF v_col_type = v_comp_id_type AND NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_sellers_company') THEN
+        ALTER TABLE public.sellers ADD CONSTRAINT fk_sellers_company FOREIGN KEY (company_id) REFERENCES public.company_settings(id) ON UPDATE CASCADE ON DELETE CASCADE NOT VALID;
+    END IF;
+
+    SELECT data_type INTO v_col_type FROM information_schema.columns WHERE table_schema='public' AND table_name='clients' AND column_name='company_id';
+    IF v_col_type = v_comp_id_type AND NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_clients_company') THEN
+        ALTER TABLE public.clients ADD CONSTRAINT fk_clients_company FOREIGN KEY (company_id) REFERENCES public.company_settings(id) ON UPDATE CASCADE ON DELETE CASCADE NOT VALID;
+    END IF;
+
+    SELECT data_type INTO v_col_type FROM information_schema.columns WHERE table_schema='public' AND table_name='debts' AND column_name='company_id';
+    IF v_col_type = v_comp_id_type AND NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_debts_company') THEN
+        ALTER TABLE public.debts ADD CONSTRAINT fk_debts_company FOREIGN KEY (company_id) REFERENCES public.company_settings(id) ON UPDATE CASCADE ON DELETE CASCADE NOT VALID;
+    END IF;
+END $$;
+
+CREATE INDEX IF NOT EXISTS idx_utilizadores_company ON public.utilizadores(company_id);
 CREATE INDEX IF NOT EXISTS idx_sellers_company ON public.sellers(company_id);
 CREATE INDEX IF NOT EXISTS idx_clients_company ON public.clients(company_id);
 CREATE INDEX IF NOT EXISTS idx_debts_company ON public.debts(company_id);
-CREATE INDEX IF NOT EXISTS idx_audit_company ON public.audit_trail(company_id);
+CREATE INDEX IF NOT EXISTS idx_audit_company ON public.audit_trail(company_id);`;
 
--- 3. Trigger para impedir auto-alteração de perfil, permissões ou empresa
-CREATE OR REPLACE FUNCTION public.prevent_self_privilege_change()
-RETURNS TRIGGER AS $$
-DECLARE
-    v_old JSONB := to_jsonb(OLD);
-    v_new JSONB := to_jsonb(NEW);
-BEGIN
-    -- Proteger o Super Administrador principal (bamidia@gmail.com)
-    IF OLD.id::text = '8b9f3c41-c996-4764-87c2-9d82411584e1'
-       AND current_setting('role', true) <> 'service_role' THEN
-        IF (v_new->>'role') IS DISTINCT FROM (v_old->>'role')
-           OR (v_new->>'perfil') IS DISTINCT FROM (v_old->>'perfil')
-           OR (v_new->>'company_id') IS DISTINCT FROM (v_old->>'company_id') THEN
-            RAISE EXCEPTION 'A conta do Super Administrador principal é protegida.';
-        END IF;
-    END IF;
+  const displayedSql = sqlPreviewText || MULTI_TENANT_SQL;
 
-    -- Impedir que qualquer utilizador autenticado altere o próprio perfil, empresa ou estado
-    IF auth.uid() IS NOT NULL
-       AND OLD.id::text = auth.uid()::text
-       AND current_setting('role', true) <> 'service_role' THEN
-        IF (v_new->>'role') IS DISTINCT FROM (v_old->>'role')
-           OR (v_new->>'perfil') IS DISTINCT FROM (v_old->>'perfil')
-           OR (v_new->>'company_id') IS DISTINCT FROM (v_old->>'company_id')
-           OR (v_new->>'ativo') IS DISTINCT FROM (v_old->>'ativo')
-           OR (v_new->>'active') IS DISTINCT FROM (v_old->>'active')
-           OR (v_new->>'is_active') IS DISTINCT FROM (v_old->>'is_active')
-           OR (v_new->>'status') IS DISTINCT FROM (v_old->>'status') THEN
-            RAISE EXCEPTION 'Nenhum utilizador pode alterar o próprio perfil, permissões ou empresa.';
-        END IF;
-    END IF;
-
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-
-DROP TRIGGER IF EXISTS trg_prevent_self_privilege_change ON public.utilizadores;
-CREATE TRIGGER trg_prevent_self_privilege_change
-BEFORE UPDATE ON public.utilizadores
-FOR EACH ROW EXECUTE FUNCTION public.prevent_self_privilege_change();
-
--- 4. Políticas RLS com isolamento multiempresa usando auth.uid() e funções existentes
-ALTER TABLE public.utilizadores ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "utilizadores_select_policy" ON public.utilizadores;
-CREATE POLICY "utilizadores_select_policy" ON public.utilizadores
-FOR SELECT USING (
-    id::text = auth.uid()::text
-    OR public.is_super_admin()
-    OR (public.is_company_admin() AND company_id::text = public.current_company_id()::text)
-);
-
-DROP POLICY IF EXISTS "utilizadores_insert_policy" ON public.utilizadores;
-CREATE POLICY "utilizadores_insert_policy" ON public.utilizadores
-FOR INSERT WITH CHECK (public.is_super_admin());
-
-DROP POLICY IF EXISTS "utilizadores_update_policy" ON public.utilizadores;
-CREATE POLICY "utilizadores_update_policy" ON public.utilizadores
-FOR UPDATE USING (
-    (public.is_super_admin() AND id::text <> '8b9f3c41-c996-4764-87c2-9d82411584e1')
-    OR (public.is_company_admin() AND company_id::text = public.current_company_id()::text AND id::text <> auth.uid()::text)
-);
-
-DROP POLICY IF EXISTS "utilizadores_delete_policy" ON public.utilizadores;
-CREATE POLICY "utilizadores_delete_policy" ON public.utilizadores
-FOR DELETE USING (
-    public.is_super_admin() AND id::text <> '8b9f3c41-c996-4764-87c2-9d82411584e1'
-);
-
-ALTER TABLE public.company_settings ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "company_select_policy" ON public.company_settings;
-CREATE POLICY "company_select_policy" ON public.company_settings
-FOR SELECT USING (public.is_super_admin() OR id::text = public.current_company_id()::text);
-
-DROP POLICY IF EXISTS "company_write_policy" ON public.company_settings;
-CREATE POLICY "company_write_policy" ON public.company_settings
-FOR ALL USING (public.is_super_admin() OR (public.is_company_admin() AND id::text = public.current_company_id()::text));`;
+  const handleOpenSqlModal = async () => {
+    setShowSqlModal(true);
+    try {
+      const fullSql = await fetchSupabaseSchemaSql();
+      if (fullSql) setSqlPreviewText(fullSql);
+    } catch {}
+  };
 
   const handleCopySql = () => {
-    navigator.clipboard.writeText(MULTI_TENANT_SQL);
+    navigator.clipboard.writeText(displayedSql);
     setIsCopiedSql(true);
     setTimeout(() => setIsCopiedSql(false), 2500);
   };
@@ -307,7 +381,7 @@ FOR ALL USING (public.is_super_admin() OR (public.is_company_admin() AND id::tex
             </button>
 
             <button
-              onClick={() => setShowSqlModal(true)}
+              onClick={handleOpenSqlModal}
               className="px-3.5 py-2.5 text-xs font-bold text-emerald-950 bg-white hover:bg-emerald-50 active:scale-95 rounded-xl shadow-xs transition-all flex items-center gap-2 cursor-pointer border border-emerald-200"
             >
               <Database className="w-4 h-4 text-emerald-700" />
@@ -324,6 +398,20 @@ FOR ALL USING (public.is_super_admin() OR (public.is_company_admin() AND id::tex
           </div>
         </div>
       </div>
+
+      {feedbackError && (
+        <div className="p-4 bg-rose-50 border border-rose-200 rounded-2xl flex items-start gap-3 text-xs text-rose-800">
+          <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+          <span>{feedbackError}</span>
+        </div>
+      )}
+
+      {feedbackSuccess && (
+        <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl flex items-start gap-3 text-xs text-emerald-900">
+          <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+          <span>{feedbackSuccess}</span>
+        </div>
+      )}
 
       {/* 2. Métricas Consolidadas do Super Administrador */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -436,7 +524,7 @@ FOR ALL USING (public.is_super_admin() OR (public.is_company_admin() AND id::tex
         {filteredCompanies.map(comp => {
           const compId = comp.id || 'default_company';
           const isActiveSelected = activeCompanyId === compId;
-          const compSellers = sellers.filter(s => (s.companyId || 'default_company') === compId);
+          const compUsersCount = getCompanyUsersCount(compId);
           const compClients = clients.filter(c => (c.companyId || 'default_company') === compId);
           const compDebts = debts.filter(d => (d.companyId || 'default_company') === compId);
           const isCompActive = (comp.status || 'ativo') === 'ativo';
@@ -519,7 +607,7 @@ FOR ALL USING (public.is_super_admin() OR (public.is_company_admin() AND id::tex
                   </div>
 
                   <div className="flex items-center gap-3 text-[11px] text-slate-500 font-mono">
-                    <span>{compSellers.length} utilizadores</span>
+                    <span>{compUsersCount} utilizadores</span>
                     <span>{compClients.length} clientes</span>
                     <span>{compDebts.length} faturas</span>
                   </div>
@@ -527,7 +615,7 @@ FOR ALL USING (public.is_super_admin() OR (public.is_company_admin() AND id::tex
               </div>
 
               {/* Ações do Card */}
-              <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
+              <div className="mt-4 pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2">
                 <button
                   type="button"
                   onClick={() => toggleCompanyStatus(comp)}
@@ -541,7 +629,19 @@ FOR ALL USING (public.is_super_admin() OR (public.is_company_admin() AND id::tex
                   <span>{isCompActive ? 'Desativar' : 'Ativar'}</span>
                 </button>
 
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  {onManageCompanyUsers && (
+                    <button
+                      type="button"
+                      onClick={() => onManageCompanyUsers(compId)}
+                      className="px-2.5 py-1.5 text-xs font-bold text-emerald-800 bg-white hover:bg-emerald-50 border border-emerald-200 rounded-xl transition-colors cursor-pointer flex items-center gap-1.5"
+                      title="Gerir utilizadores e permissões desta empresa"
+                    >
+                      <Users className="w-3.5 h-3.5 text-emerald-700" />
+                      <span>Utilizadores ({compUsersCount})</span>
+                    </button>
+                  )}
+
                   <button
                     type="button"
                     onClick={() => openEditCompanyModal(comp)}
@@ -554,9 +654,12 @@ FOR ALL USING (public.is_super_admin() OR (public.is_company_admin() AND id::tex
                   {onDeleteCompany && compId !== 'default_company' && (
                     <button
                       type="button"
-                      onClick={() => {
+                      onClick={async () => {
                         if (window.confirm(`Tem a certeza que deseja remover a empresa "${comp.name}"? Todos os utilizadores, clientes e dívidas associados a esta empresa serão afetados.`)) {
-                          onDeleteCompany(compId);
+                          const res = await onDeleteCompany(compId);
+                          if (res && res.success === false) {
+                            setFeedbackError(res.error || 'Não foi possível remover a empresa.');
+                          }
                         }
                       }}
                       className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
@@ -601,7 +704,7 @@ FOR ALL USING (public.is_super_admin() OR (public.is_company_admin() AND id::tex
                   {editingCompany ? 'Editar Dados da Empresa' : 'Cadastrar Nova Empresa'}
                 </h2>
                 <p className="text-xs text-emerald-200 mt-0.5">
-                  Preencha as informações fiscais, coordenadas bancárias e senha de acesso.
+                  Preencha as informações fiscais, coordenadas bancárias e estado operacional da empresa.
                 </p>
               </div>
               <button
@@ -613,6 +716,12 @@ FOR ALL USING (public.is_super_admin() OR (public.is_company_admin() AND id::tex
             </div>
 
             <form onSubmit={handleSaveSubmit} className="p-6 overflow-y-auto space-y-4">
+              {feedbackError && (
+                <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl flex items-start gap-2.5 text-xs text-rose-800">
+                  <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+                  <span>{feedbackError}</span>
+                </div>
+              )}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="sm:col-span-2">
                   <label className="block text-xs font-bold text-slate-700 mb-1">
@@ -809,7 +918,7 @@ FOR ALL USING (public.is_super_admin() OR (public.is_company_admin() AND id::tex
               </div>
 
               <pre className="p-4 bg-slate-900 text-emerald-300 rounded-2xl text-xs font-mono overflow-x-auto leading-relaxed border border-slate-800 selection:bg-emerald-600 selection:text-white">
-                {MULTI_TENANT_SQL}
+                {displayedSql}
               </pre>
             </div>
 

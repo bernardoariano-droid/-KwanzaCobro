@@ -26,6 +26,7 @@ interface TopHeaderProps {
   isSyncing?: boolean;
   isSupabaseConnected?: boolean;
   lastSyncTime?: string;
+  authMode?: 'localhost' | 'supabase';
 }
 
 export const TopHeader: React.FC<TopHeaderProps> = ({
@@ -42,6 +43,7 @@ export const TopHeader: React.FC<TopHeaderProps> = ({
   isSyncing,
   isSupabaseConnected = true,
   lastSyncTime,
+  authMode = 'supabase',
 }) => {
   const { t } = useLanguage();
 
@@ -116,19 +118,25 @@ export const TopHeader: React.FC<TopHeaderProps> = ({
             </button>
           )}
 
-          {/* Sincronização Supabase Cloud */}
+          {/* Sincronização Localhost / Supabase Cloud */}
           {onManualSync && (
             <button
               onClick={onManualSync}
               disabled={isSyncing}
               title={
-                isSyncing 
-                  ? 'A sincronizar dados com o Supabase Cloud...' 
+                isSyncing
+                  ? authMode === 'localhost'
+                    ? 'A guardar dados no Localhost...'
+                    : 'A sincronizar dados com o Supabase Cloud...'
+                  : authMode === 'localhost'
+                  ? `Modo Localhost ativo (Base Local JSON). Última gravação: ${lastSyncTime || 'Agora'}. Clique para guardar.`
                   : `Supabase Conectado. Última sincronização: ${lastSyncTime || 'Agora'}. Clique para sincronizar.`
               }
               className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold rounded-xl border transition-all cursor-pointer shadow-2xs min-h-[40px] ${
                 isSyncing
                   ? 'bg-emerald-50 text-emerald-700 border-emerald-300'
+                  : authMode === 'localhost'
+                  ? 'bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border-emerald-200'
                   : isSupabaseConnected
                   ? 'bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border-emerald-200'
                   : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'
@@ -137,7 +145,11 @@ export const TopHeader: React.FC<TopHeaderProps> = ({
               <Cloud className={`w-3.5 h-3.5 ${isSyncing ? 'animate-pulse text-emerald-600' : 'text-emerald-600'}`} />
               <RefreshCw className={`w-3 h-3 ${isSyncing ? 'animate-spin text-emerald-600' : 'text-emerald-700 hidden sm:inline'}`} />
               <span className="hidden lg:inline text-[11px] font-bold">
-                {isSyncing ? 'Sincronizando...' : t('nav.sync_cloud', 'Supabase')}
+                {isSyncing
+                  ? 'A guardar...'
+                  : authMode === 'localhost'
+                  ? 'Localhost'
+                  : t('nav.sync_cloud', 'Supabase')}
               </span>
             </button>
           )}

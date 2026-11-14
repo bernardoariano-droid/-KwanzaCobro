@@ -7,10 +7,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (!auth.ok) {
       return res.status(auth.status).json({ success: false, error: auth.error });
     }
-    const { userSupabase: supabase } = auth;
+    const { userSupabase: supabase, profile } = auth;
 
     const [compRes, selRes, cliRes, debtRes, itemsRes, paysRes] = await Promise.all([
-      supabase.from('company_settings').select('*').limit(1),
+      supabase.from('company_settings').select('*'),
       supabase.from('sellers').select('*').order('created_at', { ascending: false }),
       supabase.from('clients').select('*').order('created_at', { ascending: false }),
       supabase.from('debts').select('*').order('created_at', { ascending: false }),
@@ -18,7 +18,33 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       supabase.from('payments').select('*'),
     ]);
 
-    const compRow = compRes.data && compRes.data.length > 0 ? compRes.data[0] : null;
+    const mapCompanyRow = (compRow: any) => ({
+      id: compRow.id ? String(compRow.id) : 'default_company',
+      name: compRow.name,
+      nif: compRow.nif,
+      phone: compRow.phone,
+      email: compRow.email,
+      address: compRow.address,
+      city: compRow.city,
+      bankName: compRow.bank_name,
+      iban: compRow.iban,
+      expressPhone: compRow.express_phone,
+      currency: compRow.currency || 'Kz',
+      logoUrl: compRow.logo_url || '/assets/aistudio/IMG-20261010-WA0062_2b38905c.jpg',
+      penaltyPerDayRate: compRow.penalty_per_day_rate ?? 0.1,
+      daysBeforeDueAlert: compRow.days_before_due_alert ?? 5,
+      autoAlertNotifications: compRow.auto_alert_notifications ?? true,
+      status: compRow.status === 'inativo' ? 'inativo' : 'ativo',
+      superAdminId: compRow.super_admin_id ? String(compRow.super_admin_id) : undefined,
+      createdAt: compRow.created_at ? String(compRow.created_at).slice(0, 10) : undefined,
+    });
+
+    const companies = (compRes.data || []).map(mapCompanyRow);
+    const company =
+      companies.find((c: any) => c.id === profile.companyId) ||
+      companies[0] ||
+      null;
+
     const sellers = (selRes.data || []).map((s: any) => ({
       id: String(s.id),
       name: s.name,
@@ -27,6 +53,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       email: s.email,
       role: normalizeServerRole(s.role),
       companyId: s.company_id ? String(s.company_id) : 'default_company',
+      isActive: s.is_active !== false,
       createdAt: s.created_at ? String(s.created_at).slice(0, 10) : undefined,
     }));
 
@@ -43,6 +70,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       creditLimit: Number(c.credit_limit || 0),
       notes: c.notes || '',
       createdBySellerId: c.created_by_seller_id ? String(c.created_by_seller_id) : undefined,
+      companyId: c.company_id ? String(c.company_id) : 'default_company',
       createdAt: c.created_at ? String(c.created_at).slice(0, 10) : undefined,
     }));
 
@@ -73,6 +101,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         invoiceNumber: d.invoice_number,
         clientId: String(d.client_id),
         sellerId: String(d.seller_id),
+        companyId: d.company_id ? String(d.company_id) : 'default_company',
         customerName: d.customer_name || '',
         customerPhone: d.customer_phone,
         issueDate: d.issue_date ? String(d.issue_date).slice(0, 10) : new Date().toISOString().slice(0, 10),
@@ -93,27 +122,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       };
     });
 
-    let company = null;
-    if (compRow) {
-      company = {
-        name: compRow.name,
-        nif: compRow.nif,
-        phone: compRow.phone,
-        email: compRow.email,
-        address: compRow.address,
-        city: compRow.city,
-        bankName: compRow.bank_name,
-        iban: compRow.iban,
-        expressPhone: compRow.express_phone,
-        currency: compRow.currency || 'Kz',
-        logoUrl: compRow.logo_url || '/assets/aistudio/IMG-20261010-WA0062_2b38905c.jpg',
-        penaltyPerDayRate: compRow.penalty_per_day_rate ?? 0.1,
-        daysBeforeDueAlert: compRow.days_before_due_alert ?? 5,
-        autoAlertNotifications: compRow.auto_alert_notifications ?? true,
-        status: compRow.status === 'inativo' ? 'inativo' : 'ativo',
-      };
-    }
-
     return res.status(200).json({
       success: true,
       source: 'supabase-production',
@@ -121,8 +129,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       clients,
       sellers,
       company: company || {},
+      companies,
       lastSavedAt: new Date().toISOString(),
       counts: {
+        companies: companies.length,
         debts: debts.length,
         clients: clients.length,
         sellers: sellers.length,

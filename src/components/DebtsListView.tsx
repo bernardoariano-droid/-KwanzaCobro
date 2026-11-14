@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { 
   Search, 
   MessageSquare, 
@@ -33,6 +33,8 @@ interface DebtsListViewProps {
   company: CompanySettings;
   currentUser?: AuthUser | null;
   initialFilter?: string;
+  initialClientFilter?: string;
+  initialSellerFilter?: string;
   onOpenNewDebt: () => void;
   onOpenPayment: (debt: Debt) => void;
   onOpenWhatsApp: (debt: Debt) => void;
@@ -48,6 +50,8 @@ export const DebtsListView: React.FC<DebtsListViewProps> = ({
   company,
   currentUser,
   initialFilter = 'all',
+  initialClientFilter = 'all',
+  initialSellerFilter = 'all',
   onOpenNewDebt,
   onOpenPayment,
   onOpenWhatsApp,
@@ -59,12 +63,25 @@ export const DebtsListView: React.FC<DebtsListViewProps> = ({
   const isSeller = currentUser?.role === 'vendedor';
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>(initialFilter);
-  const [selectedSeller, setSelectedSeller] = useState<string>('all');
+  const [selectedClient, setSelectedClient] = useState<string>(initialClientFilter);
+  const [selectedSeller, setSelectedSeller] = useState<string>(initialSellerFilter);
   const [selectedProvince, setSelectedProvince] = useState<string>('all');
   const [dueDateStart, setDueDateStart] = useState<string>('');
   const [dueDateEnd, setDueDateEnd] = useState<string>('');
   const [sortBy, setSortBy] = useState<'dueDate' | 'amount' | 'client' | 'issueDate'>('dueDate');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+
+  useEffect(() => {
+    setStatusFilter(initialFilter || 'all');
+  }, [initialFilter]);
+
+  useEffect(() => {
+    setSelectedClient(initialClientFilter || 'all');
+  }, [initialClientFilter]);
+
+  useEffect(() => {
+    setSelectedSeller(initialSellerFilter || 'all');
+  }, [initialSellerFilter]);
 
   const getClient = (clientId: string) => clients.find(c => c.id === clientId);
   const getSeller = (sellerId: string) => sellers.find(s => s.id === sellerId);
@@ -82,7 +99,13 @@ export const DebtsListView: React.FC<DebtsListViewProps> = ({
   const filteredDebts = useMemo(() => {
     return debts.filter(debt => {
       // Regra de Acesso: Vendedor só pode controlar os clientes e vendas atendidas por ele!
-      if (isSeller && currentUser?.id && debt.sellerId !== currentUser.id && debt.sellerId !== currentUser.name) {
+      if (
+        isSeller &&
+        currentUser?.id &&
+        debt.sellerId !== currentUser.id &&
+        !(currentUser.sellerId && debt.sellerId === currentUser.sellerId) &&
+        debt.sellerId !== currentUser.name
+      ) {
         return false;
       }
 
@@ -118,6 +141,11 @@ export const DebtsListView: React.FC<DebtsListViewProps> = ({
         if (debt.status !== 'acordo') return false;
       } else if (statusFilter === 'confirmada_sms') {
         if (debt.confirmationStatus !== 'confirmada') return false;
+      }
+
+      // Filtro por Cliente específico
+      if (selectedClient !== 'all' && debt.clientId !== selectedClient) {
+        return false;
       }
 
       // Filtro por Vendedor
@@ -162,7 +190,7 @@ export const DebtsListView: React.FC<DebtsListViewProps> = ({
       }
       return 0;
     });
-  }, [debts, clients, sellers, searchQuery, statusFilter, selectedSeller, selectedProvince, dueDateStart, dueDateEnd, sortBy, sortOrder, isSeller, currentUser]);
+  }, [debts, clients, sellers, searchQuery, statusFilter, selectedClient, selectedSeller, selectedProvince, dueDateStart, dueDateEnd, sortBy, sortOrder, isSeller, currentUser]);
 
   // Totais do subconjunto filtrado
   const filteredTotals = useMemo(() => {
@@ -217,13 +245,14 @@ export const DebtsListView: React.FC<DebtsListViewProps> = ({
   const clearFilters = () => {
     setSearchQuery('');
     setStatusFilter('all');
+    setSelectedClient('all');
     setSelectedSeller('all');
     setSelectedProvince('all');
     setDueDateStart('');
     setDueDateEnd('');
   };
 
-  const hasActiveFilters = searchQuery || statusFilter !== 'all' || selectedSeller !== 'all' || selectedProvince !== 'all' || dueDateStart || dueDateEnd;
+  const hasActiveFilters = searchQuery || statusFilter !== 'all' || selectedClient !== 'all' || selectedSeller !== 'all' || selectedProvince !== 'all' || dueDateStart || dueDateEnd;
 
   return (
     <div className="space-y-6 pb-20 lg:pb-12 max-w-full overflow-x-hidden">
@@ -408,6 +437,18 @@ export const DebtsListView: React.FC<DebtsListViewProps> = ({
                 {formatKwanza(filteredTotals.totalRem)}
               </strong>
             </span>
+            {selectedClient !== 'all' && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-md text-[11px] font-semibold">
+                Cliente: {getClient(selectedClient)?.name || selectedClient}
+                <button
+                  type="button"
+                  onClick={() => setSelectedClient('all')}
+                  className="hover:text-emerald-950 ml-0.5 cursor-pointer"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </span>
+            )}
           </div>
 
           {hasActiveFilters && (

@@ -36,6 +36,7 @@ interface NewDebtModalProps {
   debts: Debt[];
   company?: CompanySettings;
   currentUser?: AuthUser | null;
+  initialClientId?: string;
   onOpenNewClient: () => void;
 }
 
@@ -48,6 +49,7 @@ export const NewDebtModal: React.FC<NewDebtModalProps> = ({
   debts,
   company,
   currentUser,
+  initialClientId,
   onOpenNewClient,
 }) => {
   // Wizard Stages:
@@ -122,9 +124,27 @@ export const NewDebtModal: React.FC<NewDebtModalProps> = ({
       const randomSeq = Math.floor(1000 + Math.random() * 9000);
       setInvoiceNumber(`FT 2026/${randomSeq}`);
 
+      if (initialClientId) {
+        const matchedClient = clients.find(c => c.id === initialClientId);
+        if (matchedClient) {
+          setClientId(matchedClient.id);
+          setCustomerName(matchedClient.name);
+          setCustomerPhone(matchedClient.phone || '+244 923 000 000');
+        }
+      } else {
+        setClientId('');
+        setCustomerName('');
+        setCustomerPhone('+244 923 000 000');
+      }
+
       if (currentUser?.role === 'vendedor') {
-        const matchingSeller = sellers.find(s => s.id === currentUser.id || s.name === currentUser.name);
-        setSellerId(matchingSeller?.id || currentUser.id);
+        const matchingSeller = sellers.find(
+          s =>
+            s.id === currentUser.id ||
+            (currentUser.sellerId && s.id === currentUser.sellerId) ||
+            s.name === currentUser.name
+        );
+        setSellerId(matchingSeller?.id || currentUser.sellerId || currentUser.id);
       } else if (sellers.length > 0 && !sellerId) {
         setSellerId(sellers[0].id);
       } else if (!sellerId && currentUser) {
@@ -144,7 +164,7 @@ export const NewDebtModal: React.FC<NewDebtModalProps> = ({
       setIsExpired(false);
       setIsBlocked(false);
     }
-  }, [isOpen, sellers, company, currentUser]);
+  }, [isOpen, sellers, company, currentUser, initialClientId, clients]);
 
   // Timer countdown
   useEffect(() => {
@@ -604,7 +624,7 @@ ${itemsSummary}
   // Fallback direct registration without SMS (for business continuity if customer has no phone available)
   const handleDirectRegistrationWithoutSMS = () => {
     if (!customerName.trim() || !dueDate || totalCalculated <= 0) {
-      alert('Preencha os dados obrigatórios antes de gravar.');
+      setErrorMessage('Preencha os dados obrigatórios (cliente, prazo e produtos com valor superior a 0 Kz) antes de gravar.');
       return;
     }
 
